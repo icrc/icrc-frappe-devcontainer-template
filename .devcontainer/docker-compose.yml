@@ -81,7 +81,7 @@ services:
   # s3.json is rendered from its template by init-env.sh with the same keys as
   # .env, which is why it is gitignored rather than committed.
   seaweedfs:
-    image: chrislusf/seaweedfs:3.99
+    image: chrislusf/seaweedfs:4.48
     command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data -filer -filer.encryptVolumeData
     ports:
       - "9100:8333" # S3 API
