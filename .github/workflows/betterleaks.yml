@@ -1,0 +1,43 @@
+# Fails a pull request whose commits carry a secret. The same scan as the
+# pre-commit hook, run where --no-verify cannot skip it. It blocks a merge only
+# once "betterleaks" is a required status check in the branch ruleset.
+#
+# The betterleaks binary, not a third-party action: betterleaks publishes none,
+# and the binary is the one the container runs. The version and digest are read
+# from the Dockerfile, so the container and CI never scan with different
+# releases.
+# Docs: https://github.com/betterleaks/betterleaks#usage
+name: betterleaks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  betterleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install betterleaks
+        run: |
+          version="$(sed -n 's/^ARG BETTERLEAKS_VERSION=//p' .devcontainer/Dockerfile)"
+          sha="$(sed -n 's/^ARG BETTERLEAKS_SHA256_AMD64=//p' .devcontainer/Dockerfile)"
+          tarball="betterleaks_${version}_linux_x64.tar.gz"
+          curl -fsSL -o "${RUNNER_TEMP}/${tarball}" \
+            "https://github.com/betterleaks/betterleaks/releases/download/v${version}/${tarball}"
+          echo "${sha}  ${RUNNER_TEMP}/${tarball}" | sha256sum -c -
+          tar -xzf "${RUNNER_TEMP}/${tarball}" -C "${RUNNER_TEMP}" betterleaks
+          echo "${RUNNER_TEMP}" >>"${GITHUB_PATH}"
+
+      # Only the commits the pull request adds, so a finding is always one
+      # its author can fix.
+      - name: Scan the pull request's commits
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: betterleaks git --redact --verbose --log-opts="${BASE_SHA}..${HEAD_SHA}"

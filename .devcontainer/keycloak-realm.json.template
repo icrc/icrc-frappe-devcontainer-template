@@ -1,0 +1,28 @@
+{
+  "realm": "frappe",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "frappe",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__KEYCLOAK_CLIENT_SECRET__",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://dev.localhost:8000/*", "http://localhost:8000/*"],
+      "webOrigins": ["+"]
+    }
+  ],
+  "users": [
+    {
+      "username": "dev",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dev@example.com",
+      "firstName": "Dev",
+      "lastName": "User",
+      "credentials": [{ "type": "password", "value": "__KEYCLOAK_PASSWORD__", "temporary": false }]
+    }
+  ]
+}

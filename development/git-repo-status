@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# git-repo-status
+# Makes `git repo-status` run repo-status.sh: git resolves an unknown
+# subcommand to a `git-<name>` executable on PATH, which also puts it in the
+# `git <TAB>` completion list. A wrapper rather than a symlink, because a
+# Windows checkout without developer mode turns a symlink into a text file.
+#
+# git changes neither the working directory nor the environment for an external
+# subcommand, so the script sees exactly what a bare call would. One exception:
+# git turns `--help` into a man page lookup before the script is reached, so
+# through this form the help is `git repo-status -h`.
+exec "${BASH_SOURCE%/*}/repo-status.sh" "$@"

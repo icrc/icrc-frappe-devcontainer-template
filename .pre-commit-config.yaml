@@ -1,0 +1,14 @@
+# Hooks run on `git commit`, wired in by `pre-commit install` in
+# postCreateCommand. betterleaks is the binary the Dockerfile installs, not an
+# upstream hook, which would download a Go toolchain and build it on the first
+# commit. .github/workflows/betterleaks.yml runs the same scan on every pull
+# request, so a commit made with --no-verify is still caught.
+# Docs: https://pre-commit.com/#repository-local-hooks
+repos:
+  - repo: local
+    hooks:
+      - id: betterleaks
+        name: betterleaks
+        entry: betterleaks git --pre-commit --staged --redact --verbose
+        language: system
+        pass_filenames: false

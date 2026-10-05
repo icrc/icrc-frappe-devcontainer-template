@@ -1,0 +1,49 @@
+# LiteLLM proxy: one OpenAI-compatible endpoint in front of whichever providers
+# are listed here. http://litellm:4000 from the bench, http://localhost:4000
+# from the host.
+#
+# No secret is written here: os.environ/NAME resolves at runtime from the
+# variables docker-compose.yml passes through, which come from .devcontainer/.env.
+#
+# Check once the stack is up, from the repository root on the host. The key is
+# LITELLM_MASTER_KEY, generated into .env; no shell has it exported, so it is
+# read from the file:
+#   curl http://localhost:4000/v1/models \
+#     -H "Authorization: Bearer $(grep '^LITELLM_MASTER_KEY=' .devcontainer/.env | cut -d= -f2)"
+# From the bench, use http://litellm:4000 and /workspace/.devcontainer/.env.
+#
+# model_name is the alias a client asks for; model is the provider identifier
+# and has to be one the provider currently serves.
+
+model_list:
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-4-5-20251001
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # Azure OpenAI: the deployment name goes after azure/.
+  # - model_name: gpt
+  #   litellm_params:
+  #     model: azure/<deployment-name>
+  #     api_base: os.environ/AZURE_API_BASE
+  #     api_key: os.environ/AZURE_API_KEY
+  #     api_version: os.environ/AZURE_API_VERSION
+
+  # Any OpenAI-compatible server elsewhere on the network.
+  # - model_name: local-llm
+  #   litellm_params:
+  #     model: openai/<model-id>
+  #     api_base: http://<host>:<port>/v1
+  #     api_key: os.environ/OPENAI_API_KEY
+
+litellm_settings:
+  drop_params: true # tolerate a parameter a given provider does not support
+  request_timeout: 600
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

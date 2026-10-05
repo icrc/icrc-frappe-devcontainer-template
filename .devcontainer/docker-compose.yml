@@ -1,0 +1,208 @@
+# Services for the Frappe dev container. Passwords come from .env in this
+# directory, which init-env.sh generates on first start: `:?` rather than a
+# default, so a missing .env stops the stack instead of quietly bringing up a
+# database everyone's password opens.
+#
+# The project name applies to a plain `docker compose up`. DevPod overrides it
+# with its own `--project-name`, whose hash changes between runs, so no service
+# sets container_name (a new project would clash with the containers the last
+# one left behind) and every volume below has a fixed name. Fixed per project,
+# not per template: PROJECT_NAME is written to .env by init-env.sh from the
+# repository's name, so two projects made from this template on one machine
+# never open each other's database.
+name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}
+
+# The runtime proxy, from the host: the variables exported in the shell that
+# opens the container, else the same names in .env. Nothing set means every
+# value is empty, which curl, pip, npm and Python all read as no proxy, so one
+# file serves a network with a proxy and one without. NO_PROXY keeps the services
+# below off the proxy and is hardcoded: the host's own NO_PROXY may be `*` so
+# that devpod itself goes direct, and copied here it would send every request
+# in the container past the proxy. A project made from this
+# template adds its internal domains to both lists, e.g. `,.example.org`.
+x-proxy-env: &proxy-env
+  HTTP_PROXY: ${HTTP_PROXY:-${http_proxy:-}}
+  HTTPS_PROXY: ${HTTPS_PROXY:-${https_proxy:-}}
+  NO_PROXY: localhost,127.0.0.1,mariadb,redis-cache,redis-queue,mailpit,seaweedfs,keycloak,litellm
+  http_proxy: ${HTTP_PROXY:-${http_proxy:-}}
+  https_proxy: ${HTTPS_PROXY:-${https_proxy:-}}
+  no_proxy: localhost,127.0.0.1,mariadb,redis-cache,redis-queue,mailpit,seaweedfs,keycloak,litellm
+
+services:
+  mariadb:
+    image: docker.io/mariadb:11.8
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+      # server_audit.so ships with the image, it just has to be loaded. The log
+      # lives in the data dir, so it stays in the volume, and rotates so a
+      # chatty development box cannot fill it.
+      - --plugin-load-add=server_audit
+      - --server-audit-logging=ON
+      - --server-audit-events=CONNECT,QUERY,TABLE
+      - --server-audit-output-type=file
+      - --server-audit-file-path=/var/lib/mysql/server_audit.log
+      - --server-audit-file-rotate-size=10485760
+      - --server-audit-file-rotations=5
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?run .devcontainer/init-env.sh}
+      MARIADB_AUTO_UPGRADE: 1
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+  redis-cache:
+    image: docker.io/redis:8.2-alpine
+
+  redis-queue:
+    image: docker.io/redis:8.2-alpine
+
+  # Catches every mail the bench sends. Web UI on http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.31.2
+    volumes:
+      - mailpit-data:/data
+    ports:
+      - "8025:8025"
+    expose:
+      - 1025
+      - 1110
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_POP3_BIND_ADDR: "0.0.0.0:1110"
+
+  # S3-compatible object store, for apps that keep files outside the database.
+  # s3.json is rendered from its template by init-env.sh with the same keys as
+  # .env, which is why it is gitignored rather than committed.
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.99
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data -filer -filer.encryptVolumeData
+    ports:
+      - "9100:8333" # S3 API
+      - "9101:9333" # master HTTP / web UI
+    volumes:
+      - seaweedfs-data:/data
+      - ./seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+  frappe:
+    build:
+      context: .
+      # Always fetch frappe/bench:latest before building. A cached copy keeps
+      # its old pyenv and nvm, which do not know the FRAPPE_PYTHON and
+      # FRAPPE_NODE a newer .env pins.
+      pull: true
+      args:
+        # The default Python and Node of the bench, written to .env by
+        # init-env.sh, the one place they are set.
+        FRAPPE_PYTHON: ${FRAPPE_PYTHON:?run .devcontainer/init-env.sh}
+        FRAPPE_NODE: ${FRAPPE_NODE:?run .devcontainer/init-env.sh}
+        # No proxy here: the build takes it from devcontainer.json.
+        # Rootless Podman runs the RUN steps in the host's network, where a
+        # container-only address such as host.containers.internal has no
+        # route.
+    # Rootless Podman: keep the host UID so the bind-mounted workspace stays
+    # writable. Harmless under Docker.
+    userns_mode: keep-id
+    # The egress firewall's iptables rules, which postStartCommand applies
+    # through the frappe user's one sudo entry. See init-firewall.sh.
+    cap_add:
+      - NET_ADMIN
+    # Podman gives an added capability to a non-root user as ambient, so PID 1
+    # would hold NET_ADMIN, and a process holding a capability hides its environ
+    # from one that does not, init-firewall.sh's read. It needs none: drop them.
+    command: setpriv --inh-caps=-all --ambient-caps=-all sleep infinity
+    environment:
+      <<: *proxy-env
+      SHELL: /bin/zsh
+      # Hosts the firewall opens on top of egress-allowlist, host[:port],
+      # comma- or space-separated: internal ones, which no tracked file names.
+      # From the host shell, else .env, as the proxy.
+      EGRESS_ALLOW: ${EGRESS_ALLOW:-}
+    working_dir: /workspace/development
+    volumes:
+      - ..:/workspace:z,cached
+      # The host's git config, allowed signers and npm config, as init-env.sh
+      # copied them on this start. Relative, so no host path is spelled out
+      # and Windows works. The gitconfig copy is included by the container's
+      # own ~/.gitconfig, which stays writable; see the Dockerfile. The npmrc
+      # is ~/.npmrc itself, read-only: npm has no include, so a registry or
+      # token is changed on the host and arrives at the next start.
+      - ./.gitconfig.host:/home/frappe/.gitconfig-host:ro
+      - ./.allowed_signers.host:/home/frappe/.ssh/allowed_signers:ro
+      - ./.npmrc.host:/home/frappe/.npmrc:ro
+      # Claude Code's plugins, shell history and ~/.cache, here rather than in
+      # devcontainer.json so their names come from PROJECT_NAME too; see the
+      # mounts there for why each one is a volume. The plugins one lies inside
+      # the ~/.claude that devcontainer.json binds, which works whatever the
+      # order: the engine mounts a parent before what is inside it.
+      - claude-plugins:/home/frappe/.claude/plugins
+      - command-history:/commandhistory
+      - home-cache:/home/frappe/.cache
+    ports:
+      - "8000-8005:8000-8005"
+      - "9000-9005:9000-9005"
+
+  # Identity provider, for OIDC login against the `frappe` realm. `start-dev`
+  # runs against the embedded database over plain HTTP: development only. The
+  # realm is imported on first start from keycloak-realm.json, rendered by
+  # init-env.sh with the client secret and the test user's password from .env;
+  # an existing realm is left alone on later starts. Admin console on
+  # http://localhost:8080, user admin.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD:?run .devcontainer/init-env.sh}
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak-realm.json:/opt/keycloak/data/import/frappe-realm.json:ro
+
+  # One OpenAI-compatible endpoint in front of whichever model providers
+  # litellm-config.yaml lists. http://litellm:4000 from the bench. The provider
+  # keys are the empty lines init-env.sh leaves in .env for you to fill in; the
+  # config never holds one.
+  litellm:
+    image: ghcr.io/berriai/litellm:main-v1.83.7-stable
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    environment:
+      <<: *proxy-env
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?run .devcontainer/init-env.sh}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AZURE_API_KEY: ${AZURE_API_KEY:-}
+      AZURE_API_BASE: ${AZURE_API_BASE:-}
+      AZURE_API_VERSION: ${AZURE_API_VERSION:-}
+
+# Named outright from PROJECT_NAME, so the data survives DevPod's change of
+# project name; not external, so a clean machine needs no `docker volume create`
+# before the first start. Compose warns when a later project picks one up; the
+# warning is harmless.
+volumes:
+  mariadb-data:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_mariadb-data
+  mailpit-data:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_mailpit-data
+  seaweedfs-data:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_seaweedfs-data
+  keycloak-data:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_keycloak-data
+  claude-plugins:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_claude-plugins
+  command-history:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_history
+  home-cache:
+    name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}_cache

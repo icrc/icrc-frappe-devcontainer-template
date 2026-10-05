@@ -1,0 +1,51 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Force LF for common development files
+*.sh text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.txt text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.toml text eol=lf
+*.env text eol=lf
+*.zsh text eol=lf
+*.template text eol=lf
+# The git subcommand wrappers, which carry no extension. A CRLF shebang line
+# makes them fail on a Windows checkout.
+development/git-* text eol=lf
+
+# Docker/container files
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+.dockerignore text eol=lf
+.devcontainer/**/*.json text eol=lf
+
+# Git config files
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

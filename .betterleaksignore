@@ -1,0 +1,6 @@
+# Findings betterleaks reports and a reviewer has judged false, one fingerprint
+# per line (commit:path:rule:line), printed by a scan's JSON report.
+# The format is gitleaks's: https://github.com/gitleaks/gitleaks#gitleaksignore
+
+# The placeholder "user:token@host" in a comment, since reworded.
+a03f71c7dde68c5d89b983ab09fe31fa5062c88a:development/repo-status.sh:generic-credential-uri:125

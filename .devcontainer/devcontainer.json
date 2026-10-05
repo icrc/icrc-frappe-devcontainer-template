@@ -1,0 +1,159 @@
+// Frappe dev container. The repository is mounted at /workspace by Compose and
+// the bench is built inside /workspace/development, which is why the workspace
+// folder is one level inside the mount.
+// Docs: https://containers.dev/implementors/json_reference/
+{
+    "name": "Frappe Bench",
+    "dockerComposeFile": "./docker-compose.yml",
+    "service": "frappe",
+    "workspaceFolder": "/workspace/development",
+    "remoteUser": "frappe",
+    "updateRemoteUserUID": false,
+    "shutdownAction": "stopCompose",
+    // Build - proxy args come from the host shell, never hardcoded here. The
+    // image itself is built by docker-compose.yml, which passes no proxy.
+    "build": {
+        "args": {
+            "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+            "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
+        }
+    },
+    // Runs on the HOST before the container is created: generates
+    // .devcontainer/.env, renders seaweedfs-s3.json from it, copies the host's
+    // ~/.gitconfig, ~/.ssh/allowed_signers and ~/.npmrc next to it, and
+    // creates the bind-mount directories below so a host missing one of them
+    // still starts.
+    // Needs bash and HOME, so on Windows run from WSL2 or with Git for Windows.
+    "initializeCommand": [
+        "bash",
+        ".devcontainer/init-env.sh"
+    ],
+    // Mounts -
+    //  * git identity, allowed signers and npm config: not here but in
+    //    docker-compose.yml, from the copies init-env.sh makes on every
+    //    start. A bind-mounted ~/.gitconfig goes stale the first time the
+    //    host rewrites it, which `git config --global` does by replacing the
+    //    file, and its ${localEnv:HOME} source is unreliable on Windows.
+    //  * gh: the host's ~/.config/gh, so `gh auth login` is done once and
+    //    survives every rebuild.
+    //  * claude state: the host's ~/.claude, so login and settings are shared.
+    //  * herdr: the host's ~/.config/herdr, which holds herdr's control socket,
+    //    so Claude Code can report its session to the herdr pane running it.
+    //    The directory, not herdr.sock, which herdr recreates on every
+    //    restart. Opt-in, see README.md, and Linux hosts only: a unix socket
+    //    does not cross the VM of Docker Desktop.
+    //  * claude plugins: a volume mounted OVER the shared ~/.claude above. The
+    //    files indexing the marketplace clones hold absolute paths, valid only
+    //    for the HOME that wrote them, so sharing them breaks every
+    //    environment but the one that started last. postStartCommand refills
+    //    it; the Dockerfile creates the target so it arrives frappe-owned.
+    //  * shell history and ~/.cache: volumes, so a rebuild does not throw
+    //    away history or a pip cache. ~/.local is deliberately not one:
+    //    frappe/bench installs bench there, and a volume would hide the
+    //    image's copy behind a stale one.
+    //  The last three are declared in docker-compose.yml, which names them
+    //  from PROJECT_NAME: a name fixed here would be shared by every project
+    //  made from this template.
+    //
+    // ssh keys are deliberately absent, the public allowed_signers list aside:
+    // the host's agent is forwarded by the editor, which authenticates a git
+    // remote without a private key ever entering the container. The runtime
+    // proxy is not here either: docker-compose.yml passes it to every process
+    // in the container, not only to an editor session.
+    "mounts": [
+        "type=bind,source=${localEnv:HOME}${localEnv:USERPROFILE}/.config/gh,target=/home/frappe/.config/gh",
+        "type=bind,source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/frappe/.claude,consistency=cached",
+        "type=bind,source=${localEnv:HOME}${localEnv:USERPROFILE}/.config/herdr,target=/home/frappe/.herdr-host"
+    ],
+    // No forwardPorts: Compose publishes every port on the host already, and
+    // forwarding one as well makes the editor bind it a second time, which
+    // fails with "address already in use". These attributes only label them.
+    "portsAttributes": {
+        "8000-8005": {
+            "label": "Frappe web",
+            "protocol": "http",
+            "onAutoForward": "notify"
+        },
+        "9000-9005": {
+            "label": "Frappe realtime",
+            "onAutoForward": "silent"
+        },
+        "8025": {
+            "label": "Mailpit",
+            "protocol": "http",
+            "onAutoForward": "silent"
+        },
+        "9100": {
+            "label": "S3 API",
+            "onAutoForward": "silent"
+        },
+        "8080": {
+            "label": "Keycloak",
+            "protocol": "http",
+            "onAutoForward": "silent"
+        },
+        "4000": {
+            "label": "LiteLLM",
+            "protocol": "http",
+            "onAutoForward": "silent"
+        }
+    },
+    "otherPortsAttributes": {
+        "onAutoForward": "ignore"
+    },
+    // pre-commit is upstream's one lifecycle command, kept, and installed with
+    // pip because frappe/bench has no uv. `pre-commit install` then wires the
+    // betterleaks hook in .pre-commit-config.yaml into this repository. All of it
+    // is non-fatal: a container that comes up without them is still a working
+    // bench, and CI runs the same scan on every pull request.
+    "postCreateCommand": "npm install -g @anthropic-ai/claude-code@latest || true; python3 -m pip install --user --no-cache-dir pre-commit && python3 -m pre_commit install || true",
+    // Firewall first, on every start, since iptables state does not survive a
+    // restart. Then fill the plugin volume mounted above, which starts empty
+    // on a rebuild: idempotent and non-fatal, and runs after claude is
+    // installed. Then the skills development/skills.json pins, likewise
+    // idempotent and non-fatal. A firewall that fails stops here, so it cannot
+    // go unnoticed.
+    "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && bash /workspace/.devcontainer/install-plugins.sh && bash /workspace/development/get-skills.sh",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "remote.autoForwardPorts": false,
+                "sqltools.connections": [
+                    {
+                        "name": "MariaDB",
+                        "driver": "MariaDB",
+                        "server": "mariadb",
+                        "port": 3306,
+                        "username": "root",
+                        // From .devcontainer/.env, which is generated per
+                        // install: there is no password to hardcode here.
+                        "askForPassword": true,
+                        "database": "mysql",
+                        "previewLimit": 50
+                    }
+                ]
+            },
+            "extensions": [
+                "ms-python.python",
+                "charliermarsh.ruff",
+                "esbenp.prettier-vscode",
+                "vue.volar",
+                "mtxr.sqltools",
+                "mtxr.sqltools-driver-mysql",
+                "grapecity.gc-excelviewer",
+                "ms-vscode.live-server"
+            ]
+        },
+        "jetbrains": {
+            "plugins": [
+                "com.anthropic.code.plugin",
+                "PythonCore",
+                "Pythonid"
+            ],
+            "settings": {
+                "com.intellij:app:EditorSettings.soft_wrap_file_masks": "*.md; *.txt; *.rst; *.adoc"
+            }
+        }
+    }
+}

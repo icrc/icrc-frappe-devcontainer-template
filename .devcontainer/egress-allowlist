@@ -1,0 +1,37 @@
+# =============================================================================
+# Egress allowlist for init-firewall.sh: one `host[:port]` or `CIDR[:port]` per
+# line, the port 443 unless given. Copied root-owned into the image at
+# /etc/icrc-egress-allowlist, so a change here takes a rebuild.
+#
+# Every host a tool reaches directly when there is no proxy. GitHub's own
+# ranges, the Compose network and the proxy are opened by the script itself.
+# An internal host goes in EGRESS_ALLOW on the host, never here: this file is
+# published.
+# =============================================================================
+
+# Python packages: pip, bench setup requirements
+pypi.org
+files.pythonhosted.org
+
+# Node packages: npm, yarn, bench build
+registry.npmjs.org
+registry.yarnpkg.com
+
+# GitHub content served outside the ranges api.github.com/meta publishes:
+# release tarballs, raw files, archives
+objects.githubusercontent.com
+release-assets.githubusercontent.com
+raw.githubusercontent.com
+codeload.github.com
+
+# Claude Code: the API, login, and its telemetry and error reporting
+api.anthropic.com
+claude.ai
+platform.claude.com
+console.anthropic.com
+sentry.io
+
+# VS Code server and extensions
+update.code.visualstudio.com
+marketplace.visualstudio.com
+vscode.blob.core.windows.net

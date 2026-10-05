@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# git-pr-sync
+# Makes `git pr-sync` run pr-sync.sh. See git-repo-status for why this is a
+# wrapper and not a symlink.
+exec "${BASH_SOURCE%/*}/pr-sync.sh" "$@"

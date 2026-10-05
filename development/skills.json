@@ -1,0 +1,12 @@
+[
+    {
+        "repo": "frappe/skills",
+        "ref": "0bef982e933705c30706efc1db3bc3bc5e7aca62",
+        "path": "skills"
+    },
+    {
+        "repo": "vercel-labs/agent-browser",
+        "ref": "aff6125c023b810ea3f2e5deec5379e9a4270bdc",
+        "path": "skills"
+    }
+]
