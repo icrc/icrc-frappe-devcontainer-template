@@ -55,14 +55,14 @@ services:
       - mariadb-data:/var/lib/mysql
 
   redis-cache:
-    image: docker.io/redis:8.2-alpine
+    image: docker.io/redis:8.10-alpine
 
   redis-queue:
-    image: docker.io/redis:8.2-alpine
+    image: docker.io/redis:8.10-alpine
 
   # Catches every mail the bench sends. Web UI on http://localhost:8025.
   mailpit:
-    image: axllent/mailpit:v1.31.2
+    image: axllent/mailpit:v1.31.3
     volumes:
       - mailpit-data:/data
     ports:
@@ -155,7 +155,7 @@ services:
   # an existing realm is left alone on later starts. Admin console on
   # http://localhost:8080, user admin.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.4
+    image: quay.io/keycloak/keycloak:26.8.0
     command: start-dev --import-realm
     ports:
       - "8080:8080"
@@ -172,7 +172,7 @@ services:
   # keys are the empty lines init-env.sh leaves in .env for you to fill in; the
   # config never holds one.
   litellm:
-    image: ghcr.io/berriai/litellm:main-v1.83.7-stable
+    image: ghcr.io/berriai/litellm:main-v1.83.14-stable
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     ports:
       - "4000:4000"
