@@ -29,6 +29,7 @@ Copy the skills of every repository in skills.json, at its pinned commit, into
 To add a repository, append to skills.json:
   {"repo": "owner/name", "ref": "<full commit sha>", "path": "<folder of skills>"}
 EOF
+    return
 }
 
 force=false

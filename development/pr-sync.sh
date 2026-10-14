@@ -57,6 +57,7 @@ done
 # the candidate list is the same whatever the working directory is.
 script_repo_root() {
     git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null
+    return
 }
 
 ROOT="$(script_repo_root)"
@@ -100,6 +101,7 @@ collect_repos() {
         done < <(find "$apps_dir" -maxdepth 2 -name .git -prune -print 2>/dev/null | sort)
     fi
     printf '%s\n' "${repos[@]}"
+    return
 }
 
 rel_path() { # repo

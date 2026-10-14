@@ -128,7 +128,6 @@ To move a pin, set its `ref` to a newer commit sha and run `./get-skills.sh`.
 | `gh` | GitHub from the command line | `./gh-login.sh`, once per host |
 | `agent-browser` | Browser automation, to test a UI flow | Drives the image's Chromium, through `AGENT_BROWSER_EXECUTABLE_PATH` |
 | `frappectl` | Listing, reading and changing documents on a live Frappe site, v16 and later | `FRAPPE_SITE`, `FRAPPE_API_KEY` and `FRAPPE_API_SECRET` exported in the shell, from an API key of a site user: there is no keyring in a container. The agent can do whatever that user can, so give it the roles the work needs |
-| `pretty-release-notes` | Readable release notes from a GitHub repository's pull requests. GitHub only | `pretty-release-notes setup` writes `~/.pretty-release-notes/config.toml`, with a GitHub token and an LLM key, and a rebuild loses it. An `anthropic:` model reaches a host the firewall already opens; another provider needs its host in `EGRESS_ALLOW` |
 
 ## Frappe versions
 
@@ -137,7 +136,7 @@ Three pins in `.devcontainer/.env`, written once by `init-env.sh`:
 - `FRAPPE_VERSION` (`v16.35.0`), the exact Frappe release `install-bench.sh` installs. Set it to the release your production image uses. Avoid a floating tag such as `v16`, which resolves to the newest v16 at install time.
 - `FRAPPE_PYTHON` (`3.14.7`) and `FRAPPE_NODE` (`24.21.0`), the Python and Node [frappe/build](https://hub.docker.com/r/frappe/build/tags) carries at that tag, so the bench runs on the production toolchain. Read them with `docker run --rm --entrypoint sh frappe/build:v16.35.0 -c 'python --version; node --version'`.
 
-The container is [frappe/bench](https://hub.docker.com/r/frappe/bench/tags)`:latest`, which Frappe rebuilds daily, so a rebuild brings the newest tooling and an app meets a dependency upgrade here before production does. The Dockerfile installs the pinned Python and Node with its pyenv and nvm and makes them the default, so a rebuild never moves the interpreter the bench runs on. The Python and Node frappe/bench ships stay installed next to them.
+The container is [frappe/bench](https://hub.docker.com/r/frappe/bench/tags) at a pinned release, `v5.31.0`, so a rebuild is the same container. Dependabot opens a pull request when Frappe publishes a newer one. The Dockerfile installs the pinned Python and Node with its pyenv and nvm and makes them the default, so a rebuild never moves the interpreter the bench runs on. The Python and Node frappe/bench ships stay installed next to them.
 
 After changing `FRAPPE_PYTHON`, rebuild the container and recreate the bench's virtualenv on it: `cd frappe-bench && bench migrate-env python3.14`.
 
@@ -344,7 +343,7 @@ Kept from [frappe_docker](https://github.com/frappe/frappe_docker/tree/main/devc
 | | Upstream | Here |
 |---|---|---|
 | Distribution | A folder inside frappe_docker, copied by hand | A GitHub template repository; `PROJECT_NAME` keeps each copy's containers and volumes apart |
-| Image | `frappe/bench:latest`, used as is | `frappe/bench:latest` too, plus GitHub's host keys, zsh, `micro`, `gh`, `lazygit`, `jq`, `bat`, `fzf`, `rg`, `fd`, `tree`, `ast-grep`, `chromium`, `agent-browser`, `frappectl`, `pretty-release-notes`. Every other image pinned to a release |
+| Image | `frappe/bench:latest`, used as is | `frappe/bench` pinned to a release, plus GitHub's host keys, zsh, `micro`, `gh`, `lazygit`, `jq`, `bat`, `fzf`, `rg`, `fd`, `tree`, `ast-grep`, `chromium`, `agent-browser`, `frappectl`. Every other image pinned to a release too |
 | Passwords | `123`, hardcoded in three places | Generated per install into `.env` |
 | Apps | `installer.py`, honoured only at `bench init` | `apps.json` + `get-apps.sh`, which works on an existing bench |
 | Site | `installer.py` | `create-site.sh`, with an explicit app list |

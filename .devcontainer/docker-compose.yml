@@ -93,9 +93,9 @@ services:
   frappe:
     build:
       context: .
-      # Always fetch frappe/bench:latest before building. A cached copy keeps
-      # its old pyenv and nvm, which do not know the FRAPPE_PYTHON and
-      # FRAPPE_NODE a newer .env pins.
+      # Always fetch the pinned frappe/bench before building, so the build
+      # never runs on a cached copy whose pyenv and nvm do not know the
+      # FRAPPE_PYTHON and FRAPPE_NODE a newer .env pins.
       pull: true
       args:
         # The default Python and Node of the bench, written to .env by

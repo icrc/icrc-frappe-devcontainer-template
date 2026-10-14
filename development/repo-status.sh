@@ -72,6 +72,7 @@ done
 # report the wrong tree for a clone made inside another checkout.
 script_repo_root() {
     git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null
+    return
 }
 
 if [[ -n "$ROOT_ARG" ]]; then
@@ -124,7 +125,11 @@ tree_label() { # conflicts staged unstaged untracked
 
 # A clone URL can carry credentials as userinfo (https://user:<token>@host/...).
 # Strip it before printing: the URL is context, the token is a secret.
-scrub_url() { printf '%s' "$1" | sed 's#://[^/@]*@#://#'; }
+scrub_url() {
+    local url="$1"
+    printf '%s' "${url}" | sed 's#://[^/@]*@#://#'
+    return
+}
 
 n_label() { # count singular plural
     (($1 == 1)) && { printf '%s %s' "$1" "$2"; return; }

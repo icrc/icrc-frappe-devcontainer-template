@@ -48,6 +48,7 @@ get-apps.sh.
 Exit status: 0 on success, 1 on a bad argument or a refusal, 2 when bench or
 git fails.
 EOF
+    return
 }
 
 ASSUME_YES=false
@@ -61,7 +62,10 @@ while [[ $# -gt 0 ]]; do
         usage
         exit 0
         ;;
-    -y | --yes) ASSUME_YES=true ;;
+    -y | --yes)
+        # shellcheck disable=SC2034 # read by confirm() in common.sh
+        ASSUME_YES=true
+        ;;
     --push) PUSH=true ;;
     --branch | --base)
         [[ -n ${2:-} ]] || {

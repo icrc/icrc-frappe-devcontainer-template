@@ -11,12 +11,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+log_info() {
+    local message="$1"
+    echo -e "${GREEN}[INFO]${NC} ${message}"
+    return
+}
+log_warn() {
+    local message="$1"
+    echo -e "${YELLOW}[WARN]${NC} ${message}"
+    return
+}
+log_error() {
+    local message="$1"
+    echo -e "${RED}[ERROR]${NC} ${message}" >&2
+    return
+}
 
 error_exit() {
-    log_error "$1"
+    local message="$1"
+    log_error "${message}"
     exit 1
 }
 
@@ -47,6 +60,7 @@ require_bench() {
     [[ -d $BENCH_DIR ]] || error_exit "No bench at $BENCH_DIR. Run install-bench.sh first."
     [[ -f "$BENCH_DIR/sites/common_site_config.json" ]] ||
         error_exit "$BENCH_DIR is not a Frappe bench: no sites/common_site_config.json."
+    return
 }
 
 # The sites in the bench, one per line, assets excluded.
@@ -55,18 +69,21 @@ list_sites() {
     for dir in "$BENCH_DIR"/sites/*/; do
         [[ -f "$dir/site_config.json" ]] && basename "$dir"
     done
+    return
 }
 
 # Ask PROMPT and succeed on "yes". ASSUME_YES=true, which every script's -y
 # sets, answers for the user. With no terminal to ask, stop rather than hang.
 confirm() {
+    local question="$1"
     if [[ ${ASSUME_YES:-false} == true ]]; then
-        log_info "$1 yes (-y)"
+        log_info "${question} yes (-y)"
         return 0
     fi
-    [[ -t 0 ]] || error_exit "No terminal to answer: $1 Re-run with -y."
-    read -p "$1 (yes/no): " -r
+    [[ -t 0 ]] || error_exit "No terminal to answer: ${question} Re-run with -y."
+    read -p "${question} (yes/no): " -r
     [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]
+    return
 }
 
 # Write DEST, an AGENTS.md, from templates/KIND-AGENTS.md followed by the
@@ -86,10 +103,12 @@ write_agents_md() {
         cat "$REPO_DIR/LICENSES/MIT-ponytail-lite.txt"
         echo "-->"
     } >"$dest"
+    return
 }
 
 require_secret() {
     local name="$1"
     [[ -n ${!name:-} ]] ||
         error_exit "$name is not set. Run: bash $REPO_DIR/.devcontainer/init-env.sh"
+    return
 }

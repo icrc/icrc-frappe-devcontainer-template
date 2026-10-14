@@ -22,6 +22,7 @@ to ssh and no ssh key is uploaded: the host agent already provides one.
   --force   re-run the login even when gh reports an active session
   -h        show this help
 EOF
+    return
 }
 
 force=false

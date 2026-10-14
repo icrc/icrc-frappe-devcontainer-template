@@ -76,6 +76,7 @@ Exit status: 0 on success or when there was nothing to do, 1 on a bad
 argument, a project name Compose refuses or one .env contradicts, 2 when a
 value could not be generated.
 EOF
+    return
 }
 
 force=false
@@ -126,6 +127,7 @@ random_secret() {
         exit 2
     }
     printf '%s' "$value"
+    return
 }
 
 # The Compose project and volume names, so two projects made from this template
@@ -147,6 +149,7 @@ derive_project_name() {
         LC_ALL=C sed -e 's/[^a-z0-9_-]/-/g' -e 's/^[^a-z0-9]*//')"
     [[ $name == icrc-frappe-devcontainer-template ]] && name=icrc-frappe-template
     printf '%s' "${name:-frappe}"
+    return
 }
 
 # The name a new .env, or one without PROJECT_NAME, gets.
@@ -156,6 +159,7 @@ new_project_name() {
     else
         derive_project_name
     fi
+    return
 }
 
 write_env() {
@@ -197,6 +201,7 @@ write_env() {
     } >"$tmp"
     chmod 600 "$tmp"
     mv "$tmp" "$ENV_FILE"
+    return
 }
 
 # An .env written before a pin existed lacks it, and Compose refuses to build
@@ -218,6 +223,7 @@ add_missing_pins() {
         echo "${name}=${!default}" >>"$ENV_FILE"
         echo "init-env.sh: added ${name}=${!default} to .devcontainer/.env."
     done
+    return
 }
 
 # seaweedfs reads its identities from a JSON file, which Compose cannot
@@ -229,6 +235,7 @@ render_s3_config() {
     secret="$(grep -E '^S3_SECRET_KEY=' "$ENV_FILE" | cut -d= -f2-)"
     sed -e "s|__S3_ACCESS_KEY__|${access}|" -e "s|__S3_SECRET_KEY__|${secret}|" \
         "$S3_TEMPLATE" >"$S3_CONFIG"
+    return
 }
 
 # Same for the Keycloak realm: the client secret and the test user's password
@@ -240,6 +247,7 @@ render_realm_config() {
     password="$(grep -E '^KEYCLOAK_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)"
     sed -e "s|__KEYCLOAK_CLIENT_SECRET__|${client_secret}|" -e "s|__KEYCLOAK_PASSWORD__|${password}|" \
         "$REALM_TEMPLATE" >"$REALM_CONFIG"
+    return
 }
 
 if [[ $print_only == true ]]; then
@@ -296,6 +304,7 @@ copy_host_file() {
         : >"$target"
         echo "init-env.sh: no ${source/#$HOME/\~}, ${missing}."
     fi
+    return
 }
 copy_host_file "$HOME/.gitconfig" "$HERE/.gitconfig.host" \
     "git in the container has no identity"

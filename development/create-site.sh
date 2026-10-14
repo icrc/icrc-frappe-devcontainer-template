@@ -31,6 +31,7 @@ printed once at the end. Recover it later with:
 
 Exit status: 0 on success, 1 on a bad argument or a refusal, 2 on failure.
 EOF
+    return
 }
 
 ASSUME_YES=false
@@ -41,7 +42,10 @@ for arg in "$@"; do
         usage
         exit 0
         ;;
-    -y | --yes | --force) ASSUME_YES=true ;;
+    -y | --yes | --force)
+        # shellcheck disable=SC2034 # read by confirm() in common.sh
+        ASSUME_YES=true
+        ;;
     *) args+=("$arg") ;;
     esac
 done

@@ -12,6 +12,7 @@ Usage: s3-list-files.sh [BUCKET]
 
 List the objects in BUCKET, or in every bucket when no name is given.
 EOF
+    return
 }
 
 case "${1:-}" in
@@ -19,6 +20,7 @@ case "${1:-}" in
     usage
     exit 0
     ;;
+*) ;;
 esac
 
 require_secret S3_ACCESS_KEY
@@ -40,6 +42,7 @@ list_bucket() {
         echo "  (empty)"
     fi
     echo
+    return
 }
 
 if [[ -n $BUCKET ]]; then

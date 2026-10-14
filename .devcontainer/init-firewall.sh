@@ -35,6 +35,7 @@ An entry is host[:port] or CIDR[:port], the port 443 unless given. Names are
 resolved once, now: a host whose address moves needs the script run again.
 Idempotent, so it runs on every start and can be re-run at any time.
 EOF
+    return
 }
 
 case "${1:-}" in
@@ -68,7 +69,9 @@ fi
 
 # A variable as the container was started with it.
 pid1_env() {
-    sed -n "s/^$1=//p" <<<"$pid1_environ" | head -n 1
+    local name="$1"
+    sed -n "s/^${name}=//p" <<<"$pid1_environ" | head -n 1
+    return
 }
 
 # host:port of a proxy URL such as http://user:secret@proxy.example.org:8080/
@@ -86,6 +89,7 @@ proxy_entry() {
         port=80
     fi
     printf '%s:%s\n' "$rest" "$port"
+    return
 }
 
 # Allow one host[:port] or CIDR[:port] entry.
@@ -108,6 +112,7 @@ allow_entry() {
     for ip in $ips; do
         iptables -A OUTPUT -p tcp -d "$ip" --dport "$port" -j ACCEPT
     done
+    return
 }
 
 proxy_url="$(pid1_env HTTPS_PROXY)"
