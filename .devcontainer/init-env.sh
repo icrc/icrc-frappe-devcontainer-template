@@ -178,8 +178,8 @@ write_env() {
         echo ""
         for name in "${SECRETS[@]}"; do
             if [[ $name == LITELLM_MASTER_KEY ]]; then
-                echo "# The API key a client sends to LiteLLM (http://litellm:4000 from"
-                echo "# the bench, http://localhost:4000 from the host), as"
+                echo "# The API key a client sends to LiteLLM (litellm:4000 from the"
+                echo "# bench, localhost:4000 from the host), as"
                 echo "# \"Authorization: Bearer <key>\". Not a provider key."
             fi
             echo "${name}=$(random_secret)"
