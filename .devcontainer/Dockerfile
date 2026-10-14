@@ -180,7 +180,7 @@ ARG AGENT_BROWSER_VERSION=0.38.1
 ARG YARN_VERSION=1.22.22
 RUN pyenv install -s "${FRAPPE_PYTHON}" \
     && PYENV_VERSION="${FRAPPE_PYTHON}" pip install --no-cache-dir --only-binary :all: \
-    "virtualenv==${VIRTUALENV_VERSION}" "ast-grep-cli==${AST_GREP_VERSION}" \
+    "ast-grep-cli==${AST_GREP_VERSION}" "virtualenv==${VIRTUALENV_VERSION}" \
     && pyenv global "${FRAPPE_PYTHON}" "${PYTHON_VERSION_PREV}" \
     && . "${NVM_DIR}/nvm.sh" \
     && nvm install "${FRAPPE_NODE}" \
@@ -219,17 +219,17 @@ ENV EDITOR=micro
 ENV VISUAL=micro
 
 # zsh with the powerlevel10k theme. `-p fzf` only enables the oh-my-zsh plugin;
-# the fzf it loads is the Debian package installed above. The script is checked
-# against its digest before it runs.
-RUN curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 -o /tmp/zsh-in-docker.sh \
-    "https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh" \
-    && echo "${ZSH_IN_DOCKER_SHA256}  /tmp/zsh-in-docker.sh" | sha256sum -c - \
-    && sh /tmp/zsh-in-docker.sh \
+# the fzf it loads is the Debian package installed above. ADD fetches the script
+# and refuses it unless it matches its digest; it stays root-owned and
+# read-only, outside /tmp, where frappe could not remove a root-owned file.
+ADD --chmod=0644 --checksum=sha256:${ZSH_IN_DOCKER_SHA256} \
+    https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh \
+    /usr/local/share/zsh-in-docker.sh
+RUN sh /usr/local/share/zsh-in-docker.sh \
     -p git \
     -p fzf \
     -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.zsh_history" \
-    -x \
-    && rm -f /tmp/zsh-in-docker.sh
+    -x
 
 # Root-owned and read-only, so nothing in the container rewrites the shortcuts.
 COPY --chmod=0644 zsh/custom.zsh /home/frappe/.zsh-custom.zsh
