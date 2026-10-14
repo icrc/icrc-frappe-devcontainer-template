@@ -62,7 +62,7 @@ services:
 
   # Catches every mail the bench sends. Web UI on http://localhost:8025.
   mailpit:
-    image: axllent/mailpit:v1.31.3
+    image: axllent/mailpit:v1.31.5
     volumes:
       - mailpit-data:/data
     ports:
@@ -155,7 +155,7 @@ services:
   # an existing realm is left alone on later starts. Admin console on
   # http://localhost:8080, user admin.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.0
+    image: quay.io/keycloak/keycloak:26.8.1
     command: start-dev --import-realm
     ports:
       - "8080:8080"
