@@ -101,7 +101,9 @@ log_info "Updating the Python dependencies..."
 ./env/bin/pip install -q -U -e "apps/$APP" || log_warn "Dependency update failed, continuing."
 if [[ -f "$APP_DIR/package.json" ]]; then
     log_info "Updating the Node dependencies..."
-    (cd "$APP_DIR" && yarn install --silent) || log_warn "yarn install failed, continuing."
+    # No lifecycle scripts: a dependency's install script would run arbitrary
+    # code. If the app needs one, the asset build below fails and says so.
+    (cd "$APP_DIR" && yarn install --silent --ignore-scripts) || log_warn "yarn install failed, continuing."
 fi
 
 # One migration per site, reported individually: a failure on one site is not
