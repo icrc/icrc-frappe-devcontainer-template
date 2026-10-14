@@ -111,6 +111,7 @@ sync_label() { # head upstream ahead behind
     ((a)) && s="ahead $a"
     ((b)) && s="${s:+$s }behind $b"
     printf '%s' "$s"
+    return
 }
 
 tree_label() { # conflicts staged unstaged untracked
@@ -121,6 +122,7 @@ tree_label() { # conflicts staged unstaged untracked
     ((ut)) && s+="?$ut "
     [[ -z "$s" ]] && { printf 'clean'; return; }
     printf '%s' "${s% }"
+    return
 }
 
 # A clone URL can carry credentials as userinfo (https://user:<token>@host/...).
@@ -132,16 +134,20 @@ scrub_url() {
 }
 
 n_label() { # count singular plural
-    (($1 == 1)) && { printf '%s %s' "$1" "$2"; return; }
-    printf '%s %s' "$1" "$3"
+    local count="$1" singular="$2" plural="$3"
+    ((count == 1)) && { printf '%s %s' "$count" "$singular"; return; }
+    printf '%s %s' "$count" "$plural"
+    return
 }
 
 # One line per local branch: name, upstream ref, and how the two diverge, as
 # "behind 3", "ahead 1, behind 2", empty when in sync, "gone" when the upstream
 # branch no longer exists. This is the whole of what STALE and --pull need.
 branch_tracking() { # repo
-    git -C "$1" for-each-ref refs/heads \
+    local repo="$1"
+    git -C "$repo" for-each-ref refs/heads \
         --format='%(refname:short)|%(upstream)|%(upstream:track,nobracket)' 2>/dev/null
+    return
 }
 
 declare -A fetch_failed=()
@@ -294,6 +300,7 @@ clip() { # text max
     local t="$1" m="$2"
     ((${#t} > m)) && t="${t:0:$((m - 3))}..."
     printf '%s' "$t"
+    return
 }
 
 w_repo=4 w_branch=6 w_sync=4 w_tree=8 w_age=3
