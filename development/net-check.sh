@@ -18,12 +18,20 @@ case "${1:-}" in
         sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
         exit 0
         ;;
+    *)
+        ;;
 esac
 
-ok() { echo -e "  ${GREEN}ok${NC}    $1"; }
+ok() {
+    local message="$1"
+    echo -e "  ${GREEN}ok${NC}    ${message}"
+    return
+}
 fail() {
-    echo -e "  ${RED}FAIL${NC}  $1"
+    local message="$1"
+    echo -e "  ${RED}FAIL${NC}  ${message}"
     failures=$((failures + 1))
+    return
 }
 
 # TCP connect to host:port, nothing sent.
@@ -34,6 +42,7 @@ tcp_check() {
     else
         fail "$host:$port unreachable"
     fi
+    return
 }
 
 # HTTPS GET through whatever the environment says, as pip or npm would. Any
@@ -46,6 +55,7 @@ http_check() {
     else
         fail "$url no answer"
     fi
+    return
 }
 
 echo "Proxy"

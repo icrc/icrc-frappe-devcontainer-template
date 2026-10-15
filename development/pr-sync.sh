@@ -57,6 +57,7 @@ done
 # the candidate list is the same whatever the working directory is.
 script_repo_root() {
     git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null
+    return
 }
 
 ROOT="$(script_repo_root)"
@@ -87,6 +88,7 @@ worktree_state() { # repo -> clean, or a summary
     out="$(git -C "$repo" status --porcelain -unormal 2>/dev/null)"
     [[ -z "$out" ]] && { printf 'clean'; return; }
     printf '%s change(s)' "$(printf '%s\n' "$out" | wc -l | tr -d ' ')"
+    return
 }
 
 collect_repos() {
@@ -100,12 +102,14 @@ collect_repos() {
         done < <(find "$apps_dir" -maxdepth 2 -name .git -prune -print 2>/dev/null | sort)
     fi
     printf '%s\n' "${repos[@]}"
+    return
 }
 
 rel_path() { # repo
     local repo="$1"
     [[ "$repo" == "$ROOT" ]] && { printf '.'; return; }
     printf '%s' "${repo#"$ROOT"/}"
+    return
 }
 
 if ((LIST)); then
@@ -183,9 +187,11 @@ git -C "$REPO" rev-parse --is-inside-work-tree &>/dev/null ||
 
 REL="$(rel_path "$REPO")"
 run() { # echo the command, then run it unless this is a dry run
-    echo "  \$ $*"
+    local -a cmd=("$@")
+    echo "  \$ ${cmd[*]}"
     ((DRY_RUN)) && return 0
-    "$@"
+    "${cmd[@]}"
+    return
 }
 
 echo "=== Post-merge sync: $REL ==="

@@ -18,6 +18,7 @@ frappe-files. Creating a bucket that exists is not an error.
 From inside the container the endpoint is http://seaweedfs:8333, from the
 host http://localhost:9100.
 EOF
+    return
 }
 
 case "${1:-}" in
@@ -25,6 +26,7 @@ case "${1:-}" in
     usage
     exit 0
     ;;
+*) ;;
 esac
 
 require_secret S3_ACCESS_KEY

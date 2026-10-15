@@ -34,6 +34,7 @@ Declarations are read from these files and unioned, first declaration winning:
 Pass SETTINGS_FILE to read a different set. A file that is absent or malformed
 is skipped with a warning, never fatal.
 EOF
+    return
 }
 
 case "${1:-}" in
@@ -41,9 +42,15 @@ case "${1:-}" in
         usage
         exit 0
         ;;
+    *)
+        ;;
 esac
 
-warn() { echo "WARNING (install-plugins): $*" >&2; }
+warn() {
+    local message="$*"
+    echo "WARNING (install-plugins): ${message}" >&2
+    return
+}
 
 CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
@@ -137,6 +144,9 @@ for declaration in "${DECLARATIONS[@]}"; do
             ;;
         note)
             warn "$name"
+            ;;
+        *)
+            warn "unknown declaration '$kind', ignored"
             ;;
     esac
 done

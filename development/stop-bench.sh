@@ -21,6 +21,7 @@ asset watchers, then free ports 8000-8005 and 9000-9005.
 
 Exit status: 0 when nothing is left running, 2 when something survived.
 EOF
+    return
 }
 
 case "${1:-}" in
@@ -28,32 +29,40 @@ case "${1:-}" in
     usage
     exit 0
     ;;
+*) ;;
 esac
 
 PATTERN='bench serve|bench watch|bench schedule|bench worker|bench_helper frappe|socketio.js|esbuild.*watch|yarn run watch'
 PORTS='8000|8001|8002|8003|8004|8005|9000|9001|9002|9003|9004|9005'
 
-bench_pids() { pgrep --full "$PATTERN" || true; }
+bench_pids() {
+    pgrep --full "$PATTERN" || true
+    return
+}
 
 # The owners of whatever listens on a Frappe port.
 port_pids() {
     ss -tlnp 2>/dev/null | awk -v ports="$PORTS" '$4 ~ ":("ports")$"' |
         grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u
+    return
 }
 
 # TERM, a moment, then KILL for whatever ignored it.
 stop_pids() {
     local pids
-    pids="$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')"
+    local -a given=("$@")
+    pids="$(printf '%s\n' "${given[@]}" | sort -u | tr '\n' ' ')"
     [[ -n ${pids// /} ]] || return 0
     # shellcheck disable=SC2086
     kill -TERM $pids 2>/dev/null || true
     sleep 1
     # shellcheck disable=SC2086
     kill -KILL $pids 2>/dev/null || true
+    return
 }
 
 log_info "Stopping the bench processes..."
+# shellcheck disable=SC2046 # one argument per PID
 stop_pids $(bench_pids) $(port_pids)
 
 left="$(bench_pids)"
@@ -63,7 +72,7 @@ if [[ -z $left && -z $busy ]]; then
     exit 0
 fi
 log_warn "Still running:"
-# shellcheck disable=SC2086
+# shellcheck disable=SC2046 # a comma-separated list, no space to split on
 [[ -n $left ]] && ps -o pid=,args= -p $(tr '\n' ',' <<<"$left" | sed 's/,$//')
 [[ -n $busy ]] && ss -tlnp | grep -E ":($PORTS)\b"
 exit 2

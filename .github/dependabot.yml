@@ -1,9 +1,10 @@
-# Weekly version updates for the service images in docker-compose.yml and the
-# GitHub Actions the workflows use. Image minor and patch bumps arrive as one
+# Weekly version updates for the service images in docker-compose.yml, the
+# frappe/bench base of the Dockerfile, and the GitHub Actions the workflows use. Image minor and patch bumps arrive as one
 # pull request, a major one on its own, except MariaDB, which never gets one.
 #
-# The Dockerfile is left out: its FROM tag, GH_VERSION, BETTERLEAKS_VERSION and
-# ZSH_IN_DOCKER_VERSION are build args, which Dependabot does not resolve.
+# Of the Dockerfile only the FROM tag is updated: GH_VERSION, BETTERLEAKS_VERSION,
+# ZSH_IN_DOCKER_VERSION and the other pins are build args, which Dependabot does
+# not resolve, each with a digest to bump alongside it.
 # Docs: https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
 version: 2
 updates:
@@ -21,6 +22,11 @@ updates:
         update-types:
           - minor
           - patch
+  # The frappe/bench base of .devcontainer/Dockerfile.
+  - package-ecosystem: docker
+    directory: /.devcontainer
+    schedule:
+      interval: weekly
   # The actions in .github/workflows, pinned to a release tag.
   - package-ecosystem: github-actions
     directory: /

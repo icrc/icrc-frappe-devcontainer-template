@@ -18,6 +18,7 @@ confirmation, and falls back to dropping the database directly when
 
 Exit status: 0 on success or when cancelled, 1 when the site does not exist.
 EOF
+    return
 }
 
 ASSUME_YES=false
@@ -28,7 +29,10 @@ for arg in "$@"; do
         usage
         exit 0
         ;;
-    -y | --yes | --force) ASSUME_YES=true ;;
+    -y | --yes | --force)
+        # shellcheck disable=SC2034 # read by confirm() in common.sh
+        ASSUME_YES=true
+        ;;
     *) args+=("$arg") ;;
     esac
 done
