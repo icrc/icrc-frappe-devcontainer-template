@@ -25,8 +25,8 @@ Drop every outbound connection except, on top of loopback, replies and DNS:
 
   the container's own networks   so the Compose services stay reachable
   /etc/icrc-egress-allowlist     baked into the image from egress-allowlist
-  GitHub's web, api and git      ranges from api.github.com/meta, on 443,
-                                 and the git ones on 22 as well
+  GitHub's web, api and git      ranges from api.github.com/meta, on 443;
+                                 git reaches GitHub over https, never ssh
   the proxy                      from HTTP_PROXY / HTTPS_PROXY, when set
   EGRESS_ALLOW                   host[:port] entries, comma- or space-separated,
                                  for internal hosts no tracked file may name
@@ -159,9 +159,6 @@ done <"$ALLOWLIST"
 if [[ -n "$github_meta" ]]; then
     for cidr in $(jq -r '(.web + .api + .git)[] | select(contains(":") | not)' <<<"$github_meta" | sort -u); do
         iptables -A OUTPUT -p tcp -d "$cidr" --dport 443 -j ACCEPT
-    done
-    for cidr in $(jq -r '.git[] | select(contains(":") | not)' <<<"$github_meta"); do
-        iptables -A OUTPUT -p tcp -d "$cidr" --dport 22 -j ACCEPT
     done
 else
     echo "init-firewall: WARN cannot fetch api.github.com/meta, GitHub stays closed" >&2
