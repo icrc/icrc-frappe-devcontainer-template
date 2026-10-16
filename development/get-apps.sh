@@ -19,7 +19,8 @@
 #
 # Any git host works, because nothing here authenticates: an https URL uses
 # whatever the mounted ~/.gitconfig is configured for (a credential helper, an
-# Azure DevOps extraheader), and an ssh URL uses the forwarded agent.
+# Azure DevOps extraheader), and an ssh URL uses the forwarded agent. GitHub is
+# the exception: its ssh URLs are rewritten to https and authenticated by gh.
 # =============================================================================
 set -euo pipefail
 

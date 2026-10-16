@@ -204,8 +204,8 @@ Nothing in this repository authenticates to a git host, which is what lets the s
 // public, over https
 { "url": "https://github.com/frappe/helpdesk.git", "branch": "v1.22.1" }
 
-// private, over ssh, using the agent your editor forwards in
-{ "url": "git@github.com:your-org/your_app.git", "branch": "main" }
+// private, authenticated by the gh token; a git@github.com: URL works too
+{ "url": "https://github.com/your-org/your_app.git", "branch": "main" }
 
 // an on-premises Azure DevOps collection, using the credentials already in
 // the ~/.gitconfig mounted from your host
@@ -270,18 +270,15 @@ The workflow blocks a merge only once `betterleaks` is a required status check i
 
 ## Git and GitHub
 
-- **git** uses the ssh key from your host's agent, which the editor forwards into the container. No private key is copied in and only the public `allowed_signers` list reaches `~/.ssh`, so clone, pull and push over ssh (to GitHub or any other host) work as they do on your machine. The only prerequisite is on the host: an agent running with your key loaded (`ssh-add`) before you reopen in the container.
-- **gh** uses its own OAuth token, because an ssh key cannot authenticate an API call. Run `./gh-login.sh` once and approve the code in a browser; the token lands in the host's mounted `~/.config/gh`, so it survives every rebuild.
+- **gh** and **git to GitHub** share one OAuth token. Run `./gh-login.sh` once and approve the code in a browser; the token lands in the host's mounted `~/.config/gh`, so it survives every rebuild.
+- **git to GitHub** goes over https, through the proxy, with gh as its credential helper, since a corporate proxy does not relay ssh on port 22. `git@github.com:` and `ssh://git@github.com/` remotes are rewritten to `https://github.com/`, so existing clones keep working.
+- **git to any other host** over ssh, and commit signing, use the key from your host's agent, which the editor forwards in. No private key is copied in and only the public `allowed_signers` list reaches `~/.ssh`. The only prerequisite is on the host: an agent running with your key loaded (`ssh-add`) before you reopen in the container.
 - **git config** is the host's `~/.gitconfig`, copied into `.devcontainer/` by `init-env.sh` on every start and included by the container's own `~/.gitconfig`. A change made on the host arrives at the next start. `git config --global` inside the container writes the container's file and never touches the host's. The copy is git-ignored, and can hold whatever credential your host config holds.
 - **npm config** is the host's `~/.npmrc`, copied the same way and mounted read-only as the container's `~/.npmrc`, so a private registry and its token work for npm and yarn in the bench. Any `prefix` line is left out, since nvm refuses to run under one. Change it on the host; it arrives at the next start. With no host `~/.npmrc`, npm uses the public registry.
 
-An app cloned over https, like every entry in `apps-example.json`, can still push over ssh with one line in your host `~/.gitconfig`:
+A host `~/.gitconfig` rule that rewrites `https://github.com/` to ssh, as `insteadOf` or `pushInsteadOf`, wins over the container's rewrite and sends git back to port 22. Remove it, or the clone or push fails in the container.
 
-```bash
-git config --global url."git@github.com:".pushInsteadOf "https://github.com/"
-```
-
-Check with `ssh -T git@github.com` and `gh auth status`. If ssh fails, confirm the agent arrived: `SSH_AUTH_SOCK` must be set and `ssh-add -L` must list your key.
+Check with `gh auth status` and `git ls-remote https://github.com/cli/cli HEAD`. If git asks for a password, gh is not logged in. For signing, confirm the agent arrived: `SSH_AUTH_SOCK` must be set and `ssh-add -L` must list your key.
 
 ## Commits must be signed
 
@@ -349,7 +346,7 @@ Kept from [frappe_docker](https://github.com/frappe/frappe_docker/tree/main/devc
 | Site | `installer.py` | `create-site.sh`, with an explicit app list |
 | Bench lifecycle | Nothing | The table above |
 | Services | MariaDB, Redis. Mailpit and Postgres commented out | MariaDB, Redis, Mailpit, S3, Keycloak with a dev realm imported, LiteLLM. Postgres dropped |
-| Credentials | Host `~/.ssh` bind-mounted | Host `~/.gitconfig`, `~/.ssh/allowed_signers` and `~/.npmrc` copied in on every start, `~/.config/gh` mounted, ssh through the forwarded agent |
+| Credentials | Host `~/.ssh` bind-mounted | Host `~/.gitconfig`, `~/.ssh/allowed_signers` and `~/.npmrc` copied in on every start, `~/.config/gh` mounted and serving git to GitHub over https, ssh to other hosts through the forwarded agent |
 | Proxy | Nothing | Host `HTTP_PROXY` and `HTTPS_PROXY` passed to the containers, `NO_PROXY` hardcoded to the services, empty when unset; the build's proxy comes from `devcontainer.json` |
 | Egress | Open, and the `frappe` user has full sudo | Default-deny firewall at every start, with or without a proxy; sudo cut down to the firewall script |
 | Windows | Nothing | `init-env.sh` runs under WSL2 or Git Bash, and no host file is mounted by an absolute path |

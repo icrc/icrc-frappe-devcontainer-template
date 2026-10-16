@@ -2,10 +2,10 @@
 # =============================================================================
 # GitHub CLI login.
 #
-# gh cannot authenticate an API call with an ssh key, so it needs a token of its
-# own. This runs the OAuth device flow rather than asking for a PAT: you approve
-# a code in a browser, and there is no second secret to mint, store or rotate.
-# git is left alone, on the ssh key forwarded from the host agent.
+# gh and git both need this token: gh for the API, git because it reaches GitHub
+# over https and the Dockerfile makes gh its credential helper. This runs the
+# OAuth device flow rather than asking for a PAT: you approve a code in a
+# browser, and there is no secret to mint, store or rotate.
 #
 # The token is written to ~/.config/gh, which is the host's directory bind-
 # mounted in, so this is run once and survives every rebuild. See README.md.
@@ -16,8 +16,8 @@ usage() {
     cat <<'EOF'
 Usage: gh-login.sh [--force]
 
-Log the GitHub CLI in with the OAuth device flow (no PAT). git protocol is set
-to ssh and no ssh key is uploaded: the host agent already provides one.
+Log the GitHub CLI in with the OAuth device flow (no PAT). The token also
+serves git, which reaches GitHub over https. No ssh key is uploaded.
 
   --force   re-run the login even when gh reports an active session
   -h        show this help
@@ -51,8 +51,10 @@ if [[ $force == false ]] && gh auth status --hostname github.com &>/dev/null; th
     exit 0
 fi
 
-# --web is the device flow. --skip-ssh-key because git authenticates with the
-# forwarded agent key, which gh has no business generating or uploading.
+# --web is the device flow. --git-protocol ssh only because https would offer
+# to write a credential helper into ~/.gitconfig; the Dockerfile sets the helper
+# at system scope instead, and rewrites the ssh URLs gh hands out to https.
+# --skip-ssh-key because no key needs uploading.
 gh auth login \
     --hostname github.com \
     --git-protocol ssh \
