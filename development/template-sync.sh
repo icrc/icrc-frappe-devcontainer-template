@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # template-sync.sh
-# Checks that a project made from this template has not drifted from it.
+# Shows how a project made from icrc-frappe-devcontainer-template differs from
+# the template on GitHub, and checks that it has not drifted from it.
 #
 # Every file tracked in both the project and the template must be identical,
 # except the ones .template-sync at the project root lists as the project's
@@ -8,32 +9,32 @@
 # file only the project has is the project's business and is not checked.
 #
 # Usage:
-#   template-sync.sh TEMPLATE            # a checkout of the template, or its git URL
-#   template-sync.sh --ref REF TEMPLATE  # compare with REF, origin/main by default
-#   template-sync.sh --diff TEMPLATE     # print the diff of every file that differs,
-#                                        # the listed ones included
+#   template-sync.sh              # compare with the template's default branch
+#   template-sync.sh --ref REF    # compare with the template's branch or tag REF
+#   template-sync.sh --quiet      # the report only, without the diffs
 #
-# A URL is cloned, shallow, into a temporary directory; REF is then a branch,
-# and the default branch when it is not given. The project side is the working
-# tree of the repository this script is in, so an edit is checked before it is
-# committed.
+# The template is cloned, shallow, into a temporary directory, and the diff of
+# every file that differs is printed, the listed ones included. The project
+# side is the working tree of the repository this script is in, so an edit is
+# checked before it is committed. TEMPLATE_URL in the environment compares
+# with another repository, file:///path/to/checkout for a local one.
 #
 # .template-sync holds one path or glob per line, `#` starts a comment. A glob
 # is a bash pattern, so `*` matches across `/`: `.github/*` covers the folder.
 # A listed file that has become identical is reported too, so the list never
 # keeps a file that no longer needs it.
 #
-# Exit status: 0 in sync, 1 on drift, 2 on a usage or template error.
+# Exit status: 0 in sync, 1 on drift, 2 on a usage or clone error.
 
 set -euo pipefail
 
 # shellcheck source=development/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+TEMPLATE_URL="${TEMPLATE_URL:-https://github.com/icrc/icrc-frappe-devcontainer-template.git}"
 MANIFEST="$REPO_DIR/.template-sync"
 REF=""
-SHOW_DIFF=0
-TEMPLATE=""
+QUIET=0
 
 usage() {
     local status="$1"
@@ -44,25 +45,16 @@ usage() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --ref) [[ $# -ge 2 ]] || usage 2; REF="$2"; shift 2 ;;
-        --diff) SHOW_DIFF=1; shift ;;
+        --quiet) QUIET=1; shift ;;
         -h|--help) usage 0 ;;
-        -*) log_error "Unknown option: $1"; usage 2 ;;
-        *) [[ -z $TEMPLATE ]] || usage 2; TEMPLATE="$1"; shift ;;
+        *) log_error "Unknown argument: $1"; usage 2 ;;
     esac
 done
-[[ -n $TEMPLATE ]] || usage 2
 
-if [[ $TEMPLATE == *://* || $TEMPLATE == git@* ]]; then
-    clone="$(mktemp -d)"
-    trap 'rm -rf "$clone"' EXIT
-    git clone --quiet --depth 1 ${REF:+--branch "$REF"} "$TEMPLATE" "$clone" ||
-        { log_error "Could not clone $TEMPLATE."; exit 2; }
-    TEMPLATE="$clone"
-    REF=HEAD
-fi
-REF="${REF:-origin/main}"
-git -C "$TEMPLATE" rev-parse --verify --quiet "$REF^{commit}" >/dev/null ||
-    { log_error "$REF is not a commit in $TEMPLATE."; exit 2; }
+TEMPLATE="$(mktemp -d)"
+trap 'rm -rf "$TEMPLATE"' EXIT
+git clone --quiet --depth 1 ${REF:+--branch "$REF"} "$TEMPLATE_URL" "$TEMPLATE" ||
+    { log_error "Could not clone ${REF:+$REF of }$TEMPLATE_URL."; exit 2; }
 
 patterns=()
 if [[ -f $MANIFEST ]]; then
@@ -83,56 +75,41 @@ is_listed() {
     return 1
 }
 
-# The diff from the template's PATH to the project's. diff exits 1 when the
-# files differ, which is the expected case here, not an error.
+# The diff from the template's PATH to the project's, unless --quiet. diff
+# exits 1 when the files differ, which is the expected case here, not an error.
 show_diff() {
     local path="$1"
+    [[ $QUIET == 1 ]] && return 0
     diff -u --label "template/$path" --label "project/$path" \
-        <(git -C "$TEMPLATE" show "$REF:$path") "$REPO_DIR/$path" || true
+        "$TEMPLATE/$path" "$REPO_DIR/$path" || true
     return 0
 }
-
-# The blob id of every file tracked in the project, read from the working tree.
-declare -A project_blob
-mapfile -t project_files < <(git -C "$REPO_DIR" ls-files)
-mapfile -t project_ids < <(
-    for f in "${project_files[@]}"; do
-        [[ -f "$REPO_DIR/$f" ]] && printf '%s\n' "$f"
-    done | git -C "$REPO_DIR" hash-object --stdin-paths
-)
-i=0
-for f in "${project_files[@]}"; do
-    [[ -f "$REPO_DIR/$f" ]] || continue
-    project_blob[$f]="${project_ids[i]}"
-    i=$((i + 1))
-done
 
 drift=0
 same=0
 own=0
-while IFS=$'\t' read -r meta path; do
-    blob="${meta##* }"
+while IFS= read -r -d '' path; do
     if is_listed "$path"; then
-        if [[ ${project_blob[$path]:-} == "$blob" ]]; then
+        if [[ -f "$REPO_DIR/$path" ]] && cmp -s "$TEMPLATE/$path" "$REPO_DIR/$path"; then
             log_warn "LISTED    $path is identical to the template: drop it from .template-sync."
             drift=1
         else
             own=$((own + 1))
-            [[ $SHOW_DIFF == 1 && -n ${project_blob[$path]:-} ]] && show_diff "$path"
+            [[ -f "$REPO_DIR/$path" ]] && show_diff "$path"
         fi
-    elif [[ -z ${project_blob[$path]:-} ]]; then
+    elif [[ ! -f "$REPO_DIR/$path" ]]; then
         log_error "MISSING   $path is in the template, not here, and not listed."
         drift=1
-    elif [[ ${project_blob[$path]} != "$blob" ]]; then
+    elif ! cmp -s "$TEMPLATE/$path" "$REPO_DIR/$path"; then
         log_error "DRIFT     $path differs from the template."
-        [[ $SHOW_DIFF == 1 ]] && show_diff "$path"
+        show_diff "$path"
         drift=1
     else
         same=$((same + 1))
     fi
-done < <(git -C "$TEMPLATE" ls-tree -r "$REF")
+done < <(git -C "$TEMPLATE" ls-files -z)
 
-summary="$same identical, $own listed as the project's own, template at $(git -C "$TEMPLATE" rev-parse --short "$REF")."
+summary="$same identical, $own listed as the project's own, template at $(git -C "$TEMPLATE" rev-parse --short HEAD)."
 if [[ $drift == 1 ]]; then
     log_error "Out of sync with the template: $summary"
     exit 1
