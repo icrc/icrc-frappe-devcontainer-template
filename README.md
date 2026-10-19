@@ -73,7 +73,7 @@ export HTTP_PROXY=http://proxy.example.org:8080
 export HTTPS_PROXY=http://proxy.example.org:8080
 ```
 
-Compose passes them to the `frappe` and `litellm` containers, whose `NO_PROXY` is hardcoded to its own service names, so the bench reaches MariaDB, Keycloak or LiteLLM directly. The host's `NO_PROXY` is not copied: a launcher may set it to `*` so that devpod goes direct, which would send every request in the container past the proxy. A project made from this template adds its internal domains to `NO_PROXY` and `no_proxy` in `.devcontainer/docker-compose.yml`. An editor started from a desktop menu may not see the shell's variables; the same two lines, without `export`, in `.devcontainer/.env` are read as a fallback. The image build takes the proxy from the `build.args` of `devcontainer.json`, and never from Compose: rootless Podman runs the build's steps on the host's network, where a container-only address such as `host.containers.internal` has no route.
+Compose passes them to the `frappe` and `litellm` containers, whose `NO_PROXY` is hardcoded to its own service names, so the bench reaches MariaDB, Keycloak or LiteLLM directly. The host's `NO_PROXY` is not copied: a launcher may set it to `*` so that it goes direct itself, which would send every request in the container past the proxy. A project made from this template adds its internal domains to `NO_PROXY` and `no_proxy` in `.devcontainer/docker-compose.yml`. An editor started from a desktop menu may not see the shell's variables; the same two lines, without `export`, in `.devcontainer/.env` are read as a fallback. The image build takes the proxy from the `build.args` of `devcontainer.json`, and never from Compose: rootless Podman runs the build's steps on the host's network, where a container-only address such as `host.containers.internal` has no route.
 
 Pulling the base images goes through the Docker daemon, which has its own proxy setting: Docker Desktop's *Resources, Proxies*, or the daemon's `proxies` in `/etc/docker/daemon.json`.
 
@@ -276,6 +276,8 @@ The workflow blocks a merge only once `betterleaks` is a required status check i
 - **git config** is the host's `~/.gitconfig`, copied into `.devcontainer/` by `init-env.sh` on every start and included by the container's own `~/.gitconfig`. A change made on the host arrives at the next start. `git config --global` inside the container writes the container's file and never touches the host's. The copy is git-ignored, and can hold whatever credential your host config holds.
 - **npm config** is the host's `~/.npmrc`, copied the same way and mounted read-only as the container's `~/.npmrc`, so a private registry and its token work for npm and yarn in the bench. Any `prefix` line is left out, since nvm refuses to run under one. Change it on the host; it arrives at the next start. With no host `~/.npmrc`, npm uses the public registry.
 
+At start, `post-start.sh` clones plugins and skills with gh as the only credential helper, since the helper an editor forwards can fail, hang or abort the start when asked before the editor is attached. A marketplace on another host that needs your host's credential helper is skipped with a warning: run `bash /workspace/.devcontainer/install-plugins.sh` from a terminal once attached, where the editor forwards that helper.
+
 A host `~/.gitconfig` rule that rewrites `https://github.com/` to ssh, as `insteadOf` or `pushInsteadOf`, wins over the container's rewrite and sends git back to port 22. Remove it, or the clone or push fails in the container.
 
 Check with `gh auth status` and `git ls-remote https://github.com/cli/cli HEAD`. If git asks for a password, gh is not logged in. For signing, confirm the agent arrived: `SSH_AUTH_SOCK` must be set and `ssh-add -L` must list your key.
@@ -320,13 +322,14 @@ Keep the single quotes: git expands the `~` on each machine, so the same setting
 
 [herdr](https://herdr.dev) shows whether the agent in each pane is working or waiting by watching the pane, which needs nothing from the container. Its Claude Code hook also reports the session id to herdr over a control socket, which the container reaches through the host's `~/.config/herdr`, mounted at `~/.herdr-host`.
 
-To opt in, run `herdr integration install claude` on the host, then enter the container from a herdr pane with:
+To opt in, run `herdr integration install claude` on the host, then open a shell in the container from a herdr pane with these three variables set, for instance with `docker exec` (`podman exec` takes the same flags):
 
 ```bash
-devpod ssh <workspace> \
-  --set-env HERDR_ENV=1 \
-  --set-env HERDR_SOCKET_PATH=/home/frappe/.herdr-host/herdr.sock \
-  --set-env HERDR_PANE_ID="$HERDR_PANE_ID"
+docker exec -it -u frappe -w /workspace/development \
+  -e HERDR_ENV=1 \
+  -e HERDR_SOCKET_PATH=/home/frappe/.herdr-host/herdr.sock \
+  -e HERDR_PANE_ID="$HERDR_PANE_ID" \
+  <frappe container> zsh
 ```
 
 Without those variables the hook exits and nothing changes. `herdr integration install` writes the hook's absolute host path into `~/.claude/settings.json`, which does not exist in the container: change it to `bash "$HOME/.claude/hooks/herdr-agent-state.sh" session`, and again after a herdr update.

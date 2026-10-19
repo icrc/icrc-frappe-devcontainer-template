@@ -3,10 +3,10 @@
 DEV_DIR="/workspace/development"
 BENCH_DIR="$DEV_DIR/frappe-bench"
 
-# devpod ssh and docker exec announce a bare `xterm` and no COLORTERM, which
-# drops Claude Code, lazygit and micro to 16 colours: Claude Code's selection
-# highlight then vanishes. Every terminal that reaches this container, the
-# VS Code and JetBrains ones included, does 24-bit colour.
+# An ssh session or docker exec may announce a bare `xterm` and no COLORTERM,
+# which drops Claude Code, lazygit and micro to 16 colours: Claude Code's
+# selection highlight then vanishes. Every terminal that reaches this
+# container, the VS Code and JetBrains ones included, does 24-bit colour.
 [[ $TERM == xterm ]] && export TERM=xterm-256color
 export COLORTERM="${COLORTERM:-truecolor}"
 

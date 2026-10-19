@@ -107,13 +107,10 @@
     // is non-fatal: a container that comes up without them is still a working
     // bench, and CI runs the same scan on every pull request.
     "postCreateCommand": "npm install -g @anthropic-ai/claude-code@latest || true; python3 -m pip install --user --no-cache-dir pre-commit && python3 -m pre_commit install || true",
-    // Firewall first, on every start, since iptables state does not survive a
-    // restart. Then fill the plugin volume mounted above, which starts empty
-    // on a rebuild: idempotent and non-fatal, and runs after claude is
-    // installed. Then the skills development/skills.json pins, likewise
-    // idempotent and non-fatal. A firewall that fails stops here, so it cannot
-    // go unnoticed.
-    "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && bash /workspace/.devcontainer/install-plugins.sh && bash /workspace/development/get-skills.sh",
+    // On every start: the firewall, then the plugin volume mounted above and
+    // the skills development/skills.json pins, cloned with gh as the only git
+    // credential helper. post-start.sh says why.
+    "postStartCommand": "bash /workspace/.devcontainer/post-start.sh",
     "customizations": {
         "vscode": {
             "settings": {
