@@ -118,14 +118,34 @@ read_entries() {
     return
 }
 
-# bench names an app after its repository, minus any .git suffix. That is the
-# directory it lands in, and so the thing to test for before fetching.
+# The repository name, minus any .git suffix: what an app is called in the
+# messages, and the key that tells a local entry from a shared one.
 app_name_from_url() {
     local url="$1"
     url="${url%.git}"
     url="${url%/}"
     basename "$url"
     return
+}
+
+# The directory under apps/ the app at this URL is in, or nothing. bench names
+# the directory after the Python package, not the repository, so a repository
+# my-crm-app whose package is crm lands in apps/crm: the remote bench records
+# is what ties the two together.
+find_app_dir() {
+    local url="${1%/}" dir remote
+    url="${url%.git}"
+    for dir in apps/*/; do
+        dir="${dir%/}"
+        while read -r _ remote; do
+            remote="${remote%/}"
+            if [[ ${remote%.git} == "$url" ]]; then
+                basename "$dir"
+                return 0
+            fi
+        done < <(git -C "$dir" config --get-regexp '^remote\..*\.url$' 2>/dev/null)
+    done
+    return 0
 }
 
 # The hook is a script pre-commit writes into .git/hooks and marks, which is
@@ -177,9 +197,12 @@ while IFS=$'\x1f' read -r url branch history; do
     fi
     seen[$app]=1
 
-    if [[ -d "apps/$app" ]]; then
-        log_info "$app is already in the bench, skipping."
-        install_hooks "$app"
+    # By remote first; by name for a checkout cloned from another URL, a fork.
+    dir="$(find_app_dir "$url")"
+    [[ -n $dir || ! -d "apps/$app" ]] || dir="$app"
+    if [[ -n $dir ]]; then
+        log_info "$app is already in the bench as apps/$dir, skipping."
+        install_hooks "$dir"
         continue
     fi
 
@@ -195,13 +218,14 @@ while IFS=$'\x1f' read -r url branch history; do
         bench get-app "$url" || failed=1
     fi
 
-    if [[ -d "apps/$app" ]]; then
-        if [[ $history == true && "$(git -C "apps/$app" rev-parse --is-shallow-repository)" == true ]]; then
+    dir="$(find_app_dir "$url")"
+    if [[ -n $dir ]]; then
+        if [[ $history == true && "$(git -C "apps/$dir" rev-parse --is-shallow-repository)" == true ]]; then
             log_info "Fetching the history of $app..."
-            git -C "apps/$app" fetch --unshallow || log_warn "  Could not fetch the history, the checkout is still usable."
+            git -C "apps/$dir" fetch --unshallow || log_warn "  Could not fetch the history, the checkout is still usable."
         fi
-        install_hooks "$app"
-        log_info "$app installed."
+        install_hooks "$dir"
+        log_info "$app installed in apps/$dir."
     else
         log_error "$app was not installed. Check the URL, the branch, and that"
         log_error "  your ~/.gitconfig or ssh agent can reach that host."
