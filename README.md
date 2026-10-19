@@ -71,6 +71,8 @@ The container is the same on every OS. What runs before it is created, `.devcont
 
 Keep the repository inside WSL2 and **Reopen in Container** from there, which is Microsoft's own Dev Containers workflow. Otherwise install [Git for Windows](https://git-scm.com/download/win) with `bash` on `PATH`, which also sets `HOME`. Without either, `init-env.sh` stops and says so.
 
+`init-env.sh` writes the home folder bash sees into `.devcontainer/.env` as `HOST_HOME`, in the form Docker takes, `C:/Users/you` from Git Bash, and the container mounts `~/.config/gh` and `~/.claude` from there. How the editor was started does not matter. A WSL2 checkout uses the home folder of the distribution, and a Windows one `%USERPROFILE%`, so a `gh` login or a Claude Code login made in one is not seen from the other.
+
 ### Behind a proxy
 
 Export the proxy in the host shell before opening the container:
@@ -328,7 +330,7 @@ Keep the single quotes: git expands the `~` on each machine, so the same setting
 
 ## herdr (optional)
 
-[herdr](https://herdr.dev) shows whether the agent in each pane is working or waiting by watching the pane, which needs nothing from the container. Its Claude Code hook also reports the session id to herdr over a control socket, which the container reaches through the host's `~/.config/herdr`, mounted at `~/.herdr-host`.
+[herdr](https://herdr.dev) shows whether the agent in each pane is working or waiting by watching the pane, which needs nothing from the container. Its Claude Code hook also reports the session id to herdr over a control socket, which the container reaches through the host's `~/.config/herdr`, mounted at `~/.herdr-host`. A host without that folder gets an empty one in its place, `.devcontainer/.herdr.host`, and nothing is created in its home folder. If you install herdr after the container was created, rebuild it so the real folder is mounted.
 
 To opt in, run `herdr integration install claude` on the host, then open a shell in the container from a herdr pane with these three variables set, for instance with `docker exec` (`podman exec` takes the same flags):
 
@@ -360,7 +362,7 @@ Kept from [frappe_docker](https://github.com/frappe/frappe_docker/tree/main/devc
 | Credentials | Host `~/.ssh` bind-mounted | Host `~/.gitconfig`, `~/.ssh/allowed_signers` and `~/.npmrc` copied in on every start, `~/.config/gh` mounted and serving git to GitHub over https, ssh to other hosts through the forwarded agent |
 | Proxy | Nothing | Host `HTTP_PROXY` and `HTTPS_PROXY` passed to the containers, `NO_PROXY` hardcoded to the services, empty when unset; the build's proxy comes from `devcontainer.json` |
 | Egress | Open, and the `frappe` user has full sudo | Default-deny firewall at every start, with or without a proxy; sudo cut down to the firewall script |
-| Windows | Nothing | `init-env.sh` runs under WSL2 or Git Bash, and no host file is mounted by an absolute path |
+| Windows | Nothing | `init-env.sh` runs under WSL2 or Git Bash and writes the host's home folder into `.env`, so no mount depends on the editor's environment |
 | Repository work | Nothing | `gh`, `repo-status.sh`, `pr-sync.sh` |
 | Claude Code | Nothing | Installed, with the host `~/.claude` shared, and behind the egress firewall. Skills pinned in `skills.json`, and an AGENTS.md written into the bench and each new app |
 

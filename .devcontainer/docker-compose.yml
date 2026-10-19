@@ -128,19 +128,51 @@ services:
     volumes:
       - ..:/workspace:z,cached
       # The host's git config, allowed signers and npm config, as init-env.sh
-      # copied them on this start. Relative, so no host path is spelled out
-      # and Windows works. The gitconfig copy is included by the container's
-      # own ~/.gitconfig, which stays writable; see the Dockerfile. The npmrc
-      # is ~/.npmrc itself, read-only: npm has no include, so a registry or
-      # token is changed on the host and arrives at the next start.
+      # copied them on this start. Copies, because a bind-mounted ~/.gitconfig
+      # goes stale the first time the host rewrites it, which `git config
+      # --global` does by replacing the file. Relative, so no host path is
+      # spelled out. The gitconfig copy is included by the container's own
+      # ~/.gitconfig, which stays writable; see the Dockerfile. The npmrc is
+      # ~/.npmrc itself, read-only: npm has no include, so a registry or token
+      # is changed on the host and arrives at the next start.
       - ./.gitconfig.host:/home/frappe/.gitconfig-host:ro
       - ./.allowed_signers.host:/home/frappe/.ssh/allowed_signers:ro
       - ./.npmrc.host:/home/frappe/.npmrc:ro
-      # Claude Code's plugins, shell history and ~/.cache, here rather than in
-      # devcontainer.json so their names come from PROJECT_NAME too; see the
-      # mounts there for why each one is a volume. The plugins one lies inside
-      # the ~/.claude that devcontainer.json binds, which works whatever the
-      # order: the engine mounts a parent before what is inside it.
+      # The host folders the container writes to, so they cannot be copies.
+      # HOST_HOME and HERDR_DIR are written into .env by init-env.sh on every
+      # start, in the form Compose takes on Windows too, and init-env.sh
+      # creates the folders. Long syntax: a Windows path has a colon.
+      #  * gh: the host's ~/.config/gh, so `gh-login.sh` is run once and
+      #    survives every rebuild.
+      #  * claude state: the host's ~/.claude, so login and settings are shared.
+      #  * herdr: the host's ~/.config/herdr, which holds herdr's control
+      #    socket, so Claude Code can report its session to the herdr pane
+      #    running it. The directory, not herdr.sock, which herdr recreates on
+      #    every restart. Opt-in, see README.md, and Linux hosts only: a unix
+      #    socket does not cross the VM of Docker Desktop. A host without
+      #    ~/.config/herdr gets an empty .devcontainer/.herdr.host instead.
+      - type: bind
+        source: ${HOST_HOME:?run .devcontainer/init-env.sh}/.config/gh
+        target: /home/frappe/.config/gh
+      - type: bind
+        source: ${HOST_HOME:?run .devcontainer/init-env.sh}/.claude
+        target: /home/frappe/.claude
+        consistency: cached
+      - type: bind
+        source: ${HERDR_DIR:?run .devcontainer/init-env.sh}
+        target: /home/frappe/.herdr-host
+      # Volumes, named from PROJECT_NAME so two projects never share one.
+      #  * claude plugins: mounted OVER the shared ~/.claude above. The files
+      #    indexing the marketplace clones hold absolute paths, valid only for
+      #    the HOME that wrote them, so sharing them breaks every environment
+      #    but the one that started last. postStartCommand refills it; the
+      #    Dockerfile creates the target so it arrives frappe-owned. It works
+      #    whatever the order: the engine mounts a parent before what is
+      #    inside it.
+      #  * shell history and ~/.cache, so a rebuild does not throw away
+      #    history or a pip cache. ~/.local is deliberately not one:
+      #    frappe/bench installs bench there, and a volume would hide the
+      #    image's copy behind a stale one.
       - claude-plugins:/home/frappe/.claude/plugins
       - command-history:/commandhistory
       - home-cache:/home/frappe/.cache

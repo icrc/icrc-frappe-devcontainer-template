@@ -2,7 +2,7 @@
 # =============================================================================
 # Prepare the HOST for the dev container (initializeCommand).
 #
-# Three jobs, all of which have to happen before the container is created:
+# Four jobs, all of which have to happen before the container is created:
 #
 #  1. .devcontainer/.env, with a freshly generated value for every secret, the
 #     Frappe pins, the project name, and an empty line per model-provider key
@@ -14,8 +14,13 @@
 #     a relative path, which needs no ${localEnv:HOME} and so works on Windows,
 #     and a copy cannot go stale the way a bind-mounted file does when the
 #     host rewrites it.
-#  3. The bind-mount directories devcontainer.json declares. A bind mount whose
-#     source is missing aborts container creation.
+#  3. HOST_HOME and HERDR_DIR in .env, on every start: the host's home folder
+#     as Compose takes it, from which docker-compose.yml bind-mounts
+#     ~/.config/gh and ~/.claude, and the herdr folder it mounts. Not
+#     ${localEnv:HOME} in devcontainer.json: on Windows the editor may have no
+#     HOME, or HOME and USERPROFILE both.
+#  4. Those bind-mount directories. A bind mount whose source is missing
+#     aborts container creation.
 #
 # Runs on macOS, Linux and Windows, the last from WSL2 or Git Bash, which is
 # what provides bash and HOME there.
@@ -55,8 +60,9 @@ Usage: init-env.sh [--force] [--print] [--project-name NAME]
 Generate .devcontainer/.env with a random value per secret and the Compose
 project name, render seaweedfs-s3.json and keycloak-realm.json from it, copy
 ~/.gitconfig, ~/.ssh/allowed_signers and ~/.npmrc into .devcontainer/, and
-create the host directories the container bind-mounts. Run automatically as
-the dev container's initializeCommand.
+write the host's home folder and herdr's into .env as HOST_HOME and
+HERDR_DIR, and create the directories the container bind-mounts. Run automatically as the dev
+container's initializeCommand.
 
   --force              replace an existing .env. The database created with
                        the old password becomes unreachable
@@ -73,8 +79,8 @@ error, since Compose would open other volumes: to rename, edit .env, and the
 stack starts on new, empty ones.
 
 Exit status: 0 on success or when there was nothing to do, 1 on a bad
-argument, a project name Compose refuses or one .env contradicts, 2 when a
-value could not be generated.
+argument, a project name Compose refuses or one .env contradicts, or a home
+folder .env cannot hold, 2 when a value could not be generated.
 EOF
     return
 }
@@ -226,6 +232,52 @@ add_missing_pins() {
     return
 }
 
+# The host's home folder as Compose takes it in a bind-mount source. Git
+# Bash's /c/Users/you becomes C:/Users/you, the form Docker Desktop reads.
+# Everywhere else, WSL2 included, HOME already is that path.
+host_home() {
+    if command -v cygpath &>/dev/null; then
+        cygpath -m "$HOME"
+    else
+        printf '%s' "$HOME"
+    fi
+    return
+}
+
+# herdr's folder, which holds its control socket, when the host has one. Else
+# an empty folder of this project's, relative to docker-compose.yml, so a host
+# without herdr gets no ~/.config/herdr.
+herdr_dir() {
+    if [[ -d $HOME/.config/herdr ]]; then
+        printf '%s/.config/herdr' "$(host_home)"
+    else
+        printf './.herdr.host'
+    fi
+    return
+}
+
+# HOST_HOME and HERDR_DIR, rewritten on every start so a moved home folder, or
+# herdr installed since, is followed. Single-quoted, which Compose and the
+# `source` in common.sh both read literally, so a space in the path is safe
+# and only a ' is not.
+HOST_PATHS_COMMENT="# Host folders, rewritten by init-env.sh on every start."
+write_host_paths() {
+    local home tmp
+    home="$(host_home)"
+    if [[ $home == *"'"* ]]; then
+        echo "init-env.sh: the home folder $home holds a ', which .env cannot hold." >&2
+        exit 1
+    fi
+    tmp="$(mktemp "${ENV_FILE}.XXXXXX")"
+    awk -v comment="$HOST_PATHS_COMMENT" \
+        '$0 != comment && !/^(HOST_HOME|HERDR_DIR)=/' "$ENV_FILE" >"$tmp"
+    printf "%s\nHOST_HOME='%s'\nHERDR_DIR='%s'\n" \
+        "$HOST_PATHS_COMMENT" "$home" "$(herdr_dir)" >>"$tmp"
+    chmod 600 "$tmp"
+    mv "$tmp" "$ENV_FILE"
+    return
+}
+
 # seaweedfs reads its identities from a JSON file, which Compose cannot
 # interpolate, so it is rendered here from the template with the same keys.
 render_s3_config() {
@@ -261,6 +313,10 @@ if [[ $print_only == true ]]; then
         echo "FRAPPE_VERSION=${DEFAULT_FRAPPE_VERSION}"
         echo "FRAPPE_PYTHON=${DEFAULT_FRAPPE_PYTHON}"
         echo "FRAPPE_NODE=${DEFAULT_FRAPPE_NODE}"
+        if [[ -n ${HOME:-} ]]; then
+            echo "HOST_HOME='$(host_home)'"
+            echo "HERDR_DIR='$(herdr_dir)'"
+        fi
     fi
     exit 0
 fi
@@ -290,6 +346,7 @@ if [[ -z ${HOME:-} ]]; then
     echo "  On Windows, run from WSL2 or Git Bash, which sets it. See README.md." >&2
     exit 1
 fi
+write_host_paths
 
 # A fresh copy on every start, empty when the host has none, so the mount
 # always has a file to map. The copy keeps the host file's mode rather than
@@ -321,9 +378,9 @@ if [[ -s "$HERE/.npmrc.host" ]]; then
     printf '%s\n' "$npmrc" >"$HERE/.npmrc.host"
 fi
 
-# The bind-mount directories. Docker creates a root-owned one for whichever is
-# missing. ~/.config/herdr holds herdr's control socket and is inert for a
-# host without herdr.
-mkdir -p "$HOME/.config/gh" "$HOME/.config/herdr" "$HOME/.claude"
+# The bind-mount directories, under the HOME that HOST_HOME was written from.
+# Compose refuses to start on a missing one. ~/.config/herdr is herdr's to
+# create: the empty .herdr.host stands in for it.
+mkdir -p "$HOME/.config/gh" "$HOME/.claude" "$HERE/.herdr.host"
 
 exit 0
