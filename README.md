@@ -276,6 +276,8 @@ The workflow blocks a merge only once `betterleaks` is a required status check i
 - **git config** is the host's `~/.gitconfig`, copied into `.devcontainer/` by `init-env.sh` on every start and included by the container's own `~/.gitconfig`. A change made on the host arrives at the next start. `git config --global` inside the container writes the container's file and never touches the host's. The copy is git-ignored, and can hold whatever credential your host config holds.
 - **npm config** is the host's `~/.npmrc`, copied the same way and mounted read-only as the container's `~/.npmrc`, so a private registry and its token work for npm and yarn in the bench. Any `prefix` line is left out, since nvm refuses to run under one. Change it on the host; it arrives at the next start. With no host `~/.npmrc`, npm uses the public registry.
 
+At start, `post-start.sh` clones plugins and skills with gh as the only credential helper, since the helper an editor forwards can fail, hang or abort the start when asked before the editor is attached. A marketplace on another host that needs your host's credential helper is skipped with a warning: run `bash /workspace/.devcontainer/install-plugins.sh` from a terminal once attached, where the editor forwards that helper.
+
 A host `~/.gitconfig` rule that rewrites `https://github.com/` to ssh, as `insteadOf` or `pushInsteadOf`, wins over the container's rewrite and sends git back to port 22. Remove it, or the clone or push fails in the container.
 
 Check with `gh auth status` and `git ls-remote https://github.com/cli/cli HEAD`. If git asks for a password, gh is not logged in. For signing, confirm the agent arrived: `SSH_AUTH_SOCK` must be set and `ssh-add -L` must list your key.
