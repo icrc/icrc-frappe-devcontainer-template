@@ -20,51 +20,23 @@
     },
     // Runs on the HOST before the container is created: generates
     // .devcontainer/.env, renders seaweedfs-s3.json from it, copies the host's
-    // ~/.gitconfig, ~/.ssh/allowed_signers and ~/.npmrc next to it, and
-    // creates the bind-mount directories below so a host missing one of them
-    // still starts.
+    // ~/.gitconfig, ~/.ssh/allowed_signers and ~/.npmrc next to it, writes
+    // the host's home folder into .env as HOST_HOME, and creates the
+    // directories docker-compose.yml bind-mounts from it.
     // Needs bash and HOME, so on Windows run from WSL2 or with Git for Windows.
     "initializeCommand": [
         "bash",
         ".devcontainer/init-env.sh"
     ],
-    // Mounts -
-    //  * git identity, allowed signers and npm config: not here but in
-    //    docker-compose.yml, from the copies init-env.sh makes on every
-    //    start. A bind-mounted ~/.gitconfig goes stale the first time the
-    //    host rewrites it, which `git config --global` does by replacing the
-    //    file, and its ${localEnv:HOME} source is unreliable on Windows.
-    //  * gh: the host's ~/.config/gh, so `gh auth login` is done once and
-    //    survives every rebuild.
-    //  * claude state: the host's ~/.claude, so login and settings are shared.
-    //  * herdr: the host's ~/.config/herdr, which holds herdr's control socket,
-    //    so Claude Code can report its session to the herdr pane running it.
-    //    The directory, not herdr.sock, which herdr recreates on every
-    //    restart. Opt-in, see README.md, and Linux hosts only: a unix socket
-    //    does not cross the VM of Docker Desktop.
-    //  * claude plugins: a volume mounted OVER the shared ~/.claude above. The
-    //    files indexing the marketplace clones hold absolute paths, valid only
-    //    for the HOME that wrote them, so sharing them breaks every
-    //    environment but the one that started last. postStartCommand refills
-    //    it; the Dockerfile creates the target so it arrives frappe-owned.
-    //  * shell history and ~/.cache: volumes, so a rebuild does not throw
-    //    away history or a pip cache. ~/.local is deliberately not one:
-    //    frappe/bench installs bench there, and a volume would hide the
-    //    image's copy behind a stale one.
-    //  The last three are declared in docker-compose.yml, which names them
-    //  from PROJECT_NAME: a name fixed here would be shared by every project
-    //  made from this template.
+    // No mounts here: every one is in docker-compose.yml, which says why. A
+    // host folder here would need ${localEnv:HOME}, which on Windows the
+    // editor may not have, or have alongside USERPROFILE.
     //
     // ssh keys are deliberately absent, the public allowed_signers list aside:
     // the host's agent is forwarded by the editor, which authenticates a git
     // remote without a private key ever entering the container. The runtime
     // proxy is not here either: docker-compose.yml passes it to every process
     // in the container, not only to an editor session.
-    "mounts": [
-        "type=bind,source=${localEnv:HOME}${localEnv:USERPROFILE}/.config/gh,target=/home/frappe/.config/gh",
-        "type=bind,source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/frappe/.claude,consistency=cached",
-        "type=bind,source=${localEnv:HOME}${localEnv:USERPROFILE}/.config/herdr,target=/home/frappe/.herdr-host"
-    ],
     // No forwardPorts: Compose publishes every port on the host already, and
     // forwarding one as well makes the editor bind it a second time, which
     // fails with "address already in use". These attributes only label them.
