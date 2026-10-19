@@ -330,7 +330,7 @@ Keep the single quotes: git expands the `~` on each machine, so the same setting
 
 ## herdr (optional)
 
-[herdr](https://herdr.dev) shows whether the agent in each pane is working or waiting by watching the pane, which needs nothing from the container. Its Claude Code hook also reports the session id to herdr over a control socket, which the container reaches through the host's `~/.config/herdr`, mounted at `~/.herdr-host`.
+[herdr](https://herdr.dev) shows whether the agent in each pane is working or waiting by watching the pane, which needs nothing from the container. Its Claude Code hook also reports the session id to herdr over a control socket, which the container reaches through the host's `~/.config/herdr`, mounted at `~/.herdr-host`. A host without that folder gets an empty one in its place, `.devcontainer/.herdr.host`, and nothing is created in its home folder. If you install herdr after the container was created, rebuild it so the real folder is mounted.
 
 To opt in, run `herdr integration install claude` on the host, then open a shell in the container from a herdr pane with these three variables set, for instance with `docker exec` (`podman exec` takes the same flags):
 

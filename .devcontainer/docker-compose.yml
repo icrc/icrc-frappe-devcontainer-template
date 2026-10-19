@@ -139,9 +139,9 @@ services:
       - ./.allowed_signers.host:/home/frappe/.ssh/allowed_signers:ro
       - ./.npmrc.host:/home/frappe/.npmrc:ro
       # The host folders the container writes to, so they cannot be copies.
-      # HOST_HOME is the host's home folder, which init-env.sh writes into .env
-      # on every start, in the form Compose takes on Windows too, and under
-      # which it creates the three. Long syntax: a Windows path has a colon.
+      # HOST_HOME and HERDR_DIR are written into .env by init-env.sh on every
+      # start, in the form Compose takes on Windows too, and init-env.sh
+      # creates the folders. Long syntax: a Windows path has a colon.
       #  * gh: the host's ~/.config/gh, so `gh-login.sh` is run once and
       #    survives every rebuild.
       #  * claude state: the host's ~/.claude, so login and settings are shared.
@@ -149,7 +149,8 @@ services:
       #    socket, so Claude Code can report its session to the herdr pane
       #    running it. The directory, not herdr.sock, which herdr recreates on
       #    every restart. Opt-in, see README.md, and Linux hosts only: a unix
-      #    socket does not cross the VM of Docker Desktop.
+      #    socket does not cross the VM of Docker Desktop. A host without
+      #    ~/.config/herdr gets an empty .devcontainer/.herdr.host instead.
       - type: bind
         source: ${HOST_HOME:?run .devcontainer/init-env.sh}/.config/gh
         target: /home/frappe/.config/gh
@@ -158,7 +159,7 @@ services:
         target: /home/frappe/.claude
         consistency: cached
       - type: bind
-        source: ${HOST_HOME:?run .devcontainer/init-env.sh}/.config/herdr
+        source: ${HERDR_DIR:?run .devcontainer/init-env.sh}
         target: /home/frappe/.herdr-host
       # Volumes, named from PROJECT_NAME so two projects never share one.
       #  * claude plugins: mounted OVER the shared ~/.claude above. The files
