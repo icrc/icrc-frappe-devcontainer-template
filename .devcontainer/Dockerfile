@@ -134,7 +134,7 @@ RUN printf 'path-include /usr/share/doc/fzf/*\n' > /etc/dpkg/dpkg.cfg.d/fzf \
 # allowed_signers file docker-compose.yml mounts into it.
 #
 # ~/.gitconfig is the container's own, writable, and includes the host's,
-# mounted read-only at ~/.gitconfig-host. What the editor or devpod writes
+# mounted read-only at ~/.gitconfig-host. What the editor writes
 # goes after the include, so it overrides the host's value and stays in the
 # container instead of landing in the host file. Appended, so anything
 # frappe/bench puts there is kept.
@@ -144,8 +144,9 @@ RUN printf 'path-include /usr/share/doc/fzf/*\n' > /etc/dpkg/dpkg.cfg.d/fzf \
     && printf '[include]\n\tpath = /home/frappe/.gitconfig-host\n' >>/home/frappe/.gitconfig \
     && chown -R frappe:frappe /workspace /home/frappe/.claude /home/frappe/.config \
     /home/frappe/.gitconfig \
-# devpod's git credentials server runs `su frappe -c git config` from /root, and
-# git 2.55 dies when it cannot stat /root/.git. Search-only (711), no listing.
+# An editor's git credentials server may run `su frappe -c git config` from
+# /root, and git 2.55 dies when it cannot stat /root/.git. Search-only (711),
+# no listing.
     && chmod 0711 /root
 
 USER frappe

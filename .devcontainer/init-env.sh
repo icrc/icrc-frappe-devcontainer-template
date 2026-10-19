@@ -132,8 +132,8 @@ random_secret() {
 
 # The Compose project and volume names, so two projects made from this template
 # on one machine never share a database. From the origin remote's repository
-# name, which is the same in every clone and under DevPod, whose checkout
-# folder is named after the workspace, else from this repository's folder.
+# name, which is the same in every clone, one in a checkout folder named
+# after a workspace included, else from this repository's folder.
 # Reduced to what Compose accepts: lower case, digits, `-` and `_`. The
 # template's own repository gets a name of its own, which no project made from
 # it takes by accident.
