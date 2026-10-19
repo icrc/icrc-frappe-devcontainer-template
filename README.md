@@ -56,6 +56,12 @@ bash .devcontainer/init-env.sh --project-name acme-crm   # the same, without the
 
 Lower case, digits, `-` and `_`. It is written into `.env` once and read from there on every start. A `PROJECT_NAME` in the shell that contradicts `.env` stops the start with an error, because Compose would take the shell's and open another project's volumes. To rename, edit `.env`; the stack then starts on new, empty volumes and the old ones stay behind.
 
+To keep up with the template, list in `.template-sync`, at your repository's root, every file you changed on purpose, one path or glob per line, and every template file you removed. `development/template-sync.sh` then checks that each other file the two share is still identical, and `--diff` shows what differs:
+
+```bash
+development/template-sync.sh https://github.com/icrc/icrc-frappe-devcontainer-template.git
+```
+
 ## On the host
 
 The container is the same on every OS. What runs before it is created, `.devcontainer/init-env.sh`, is a bash script that reads `$HOME`, and a proxy has to be set where the container is opened from.
@@ -238,6 +244,7 @@ All in `development/`, all with `--help`, all aliased in the shell.
 | `pr-sync.sh` | `git pr-sync` | Return an app to its default branch once its PR is merged |
 | `gh-login.sh` | | Authenticate `gh`, once per host, with the device flow |
 | `get-skills.sh` | | Install the agent skills `skills.json` pins. Runs on every start |
+| `template-sync.sh` | | Check a project made from this template against it: every file the two share is identical, unless `.template-sync` lists it as the project's own |
 
 Navigation: `godev`, `gobench`, `goapps`, `gosites`. Log tail: `logs`.
 
