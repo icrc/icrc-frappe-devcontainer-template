@@ -62,7 +62,7 @@ services:
 
   # Catches every mail the bench sends. Web UI on http://localhost:8025.
   mailpit:
-    image: axllent/mailpit:v1.31.5
+    image: axllent/mailpit:v1.31.6
     volumes:
       - mailpit-data:/data
     ports:
