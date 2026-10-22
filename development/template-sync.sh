@@ -22,7 +22,9 @@
 # .template-sync holds one path or glob per line, `#` starts a comment. A glob
 # is a bash pattern, so `*` matches across `/`: `.github/*` covers the folder.
 # A listed file that has become identical is reported too, so the list never
-# keeps a file that no longer needs it.
+# keeps a file that no longer needs it. The listed files that differ are named
+# before the report, as a change the template makes to one shows only in its
+# diff and never as drift.
 #
 # Exit status: 0 in sync, 1 on drift, 2 on a usage or clone error.
 
@@ -88,6 +90,7 @@ show_diff() {
 drift=0
 same=0
 own=0
+own_differ=()
 while IFS= read -r -d '' path; do
     if is_listed "$path"; then
         if [[ -f "$REPO_DIR/$path" ]] && cmp -s "$TEMPLATE/$path" "$REPO_DIR/$path"; then
@@ -95,7 +98,10 @@ while IFS= read -r -d '' path; do
             drift=1
         else
             own=$((own + 1))
-            [[ -f "$REPO_DIR/$path" ]] && show_diff "$path"
+            if [[ -f "$REPO_DIR/$path" ]]; then
+                own_differ+=("$path")
+                show_diff "$path"
+            fi
         fi
     elif [[ ! -f "$REPO_DIR/$path" ]]; then
         log_error "MISSING   $path is in the template, not here, and not listed."
@@ -108,6 +114,10 @@ while IFS= read -r -d '' path; do
         same=$((same + 1))
     fi
 done < <(git -C "$TEMPLATE" ls-files -z)
+
+if [[ ${#own_differ[@]} -gt 0 ]]; then
+    log_info "Listed and differing, so read their diffs for a template change to bring: ${own_differ[*]}"
+fi
 
 summary="$same identical, $own listed as the project's own, template at $(git -C "$TEMPLATE" rev-parse --short HEAD)."
 if [[ $drift == 1 ]]; then
