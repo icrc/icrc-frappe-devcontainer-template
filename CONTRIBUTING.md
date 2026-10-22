@@ -7,7 +7,7 @@ Contributions are welcome as pull requests; issues are not enabled on this repos
 When you send one:
 
 - Commits are signed. [README.md](README.md#commits-must-be-signed) has the setup.
-- [AGENTS.md](AGENTS.md) holds the conventions for a change, for people and coding agents alike: pinned versions, no secret in a tracked file, no internal hostname.
+- [AGENTS.md](AGENTS.md) and [PROJECT.md](PROJECT.md) hold the conventions for a change, for people and coding agents alike: pinned versions, no secret in a tracked file, no internal hostname.
 - The check is a container rebuild, then `install-bench.sh`, `create-site.sh`, `start.sh` and the site loading.
 
 This page will say more once the project is stable.
