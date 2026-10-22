@@ -78,9 +78,9 @@
     },
     // pre-commit is upstream's one lifecycle command, kept, and installed with
     // pip because frappe/bench has no uv. `pre-commit install` then wires the
-    // betterleaks hook in .pre-commit-config.yaml into this repository. All of it
-    // is non-fatal: a container that comes up without them is still a working
-    // bench, and CI runs the same scan on every pull request.
+    // hooks of .pre-commit-config.yaml into this repository. All of it is
+    // non-fatal: a container that comes up without them is still a working
+    // bench, and CI runs the same hooks on every pull request.
     "postCreateCommand": "npm install -g @anthropic-ai/claude-code@latest || true; python3 -m pip install --user --no-cache-dir pre-commit && python3 -m pre_commit install || true",
     // On every start: the firewall, then the plugin volume mounted above and
     // the skills development/skills.json pins, cloned with gh as the only git

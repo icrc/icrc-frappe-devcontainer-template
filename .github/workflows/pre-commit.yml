@@ -1,0 +1,29 @@
+# Runs the hooks of .pre-commit-config.yaml on every pull request, over the
+# whole repository, so a commit made without them is still checked. betterleaks
+# is skipped here: betterleaks.yml scans the pull request's commits.
+# pre-commit is pinned, so a run is the same on every pull request.
+# Docs: https://pre-commit.com/#usage-in-continuous-integration
+name: pre-commit
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PRE_COMMIT_VERSION: 4.6.2
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Run pre-commit
+        env:
+          SKIP: betterleaks
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/pre-commit"
+          "${RUNNER_TEMP}/pre-commit/bin/pip" install --quiet "pre-commit==${PRE_COMMIT_VERSION}"
+          "${RUNNER_TEMP}/pre-commit/bin/pre-commit" run --all-files --show-diff-on-failure
