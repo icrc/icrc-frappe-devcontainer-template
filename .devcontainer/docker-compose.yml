@@ -18,15 +18,16 @@ name: ${PROJECT_NAME:?run .devcontainer/init-env.sh}
 # file serves a network with a proxy and one without. NO_PROXY keeps the
 # services below off the proxy and is hardcoded: the host's own NO_PROXY may be
 # `*` so that a launcher on the host goes direct, and copied here it would send
-# every request in the container past the proxy. A project made from this
-# template adds its internal domains to both lists, e.g. `,.example.org`.
+# every request in the container past the proxy. A project's internal domains
+# follow, from NO_PROXY_DOMAINS, which init-env.sh writes into .env on every
+# start from the value at its top.
 x-proxy-env: &proxy-env
   HTTP_PROXY: ${HTTP_PROXY:-${http_proxy:-}}
   HTTPS_PROXY: ${HTTPS_PROXY:-${https_proxy:-}}
-  NO_PROXY: localhost,127.0.0.1,mariadb,redis-cache,redis-queue,mailpit,seaweedfs,keycloak,litellm
+  NO_PROXY: localhost,127.0.0.1,mariadb,redis-cache,redis-queue,mailpit,seaweedfs,keycloak,litellm${NO_PROXY_DOMAINS:-}
   http_proxy: ${HTTP_PROXY:-${http_proxy:-}}
   https_proxy: ${HTTPS_PROXY:-${https_proxy:-}}
-  no_proxy: localhost,127.0.0.1,mariadb,redis-cache,redis-queue,mailpit,seaweedfs,keycloak,litellm
+  no_proxy: localhost,127.0.0.1,mariadb,redis-cache,redis-queue,mailpit,seaweedfs,keycloak,litellm${NO_PROXY_DOMAINS:-}
 
 services:
   mariadb:
