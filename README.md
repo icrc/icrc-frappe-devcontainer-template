@@ -42,6 +42,7 @@ cd /workspace/development
 | `.devcontainer/egress-allowlist` | The public hosts your apps reach that the list does not open yet |
 | `.github/CODEOWNERS` | Your team, in place of this repository's |
 | `README.md` | Your title and introduction. The rest describes the container and stays true |
+| `PROJECT.md` | What your project is and its own rules, for coding agents. `AGENTS.md`, which stays as it is, imports it |
 
 Every generated file, `.env` among them, is git-ignored, so none of it reaches your repository.
 
