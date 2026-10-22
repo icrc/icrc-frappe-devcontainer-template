@@ -1,8 +1,8 @@
 # Hooks run on `git commit`, wired in by `pre-commit install` in
-# postCreateCommand. betterleaks is the binary the Dockerfile installs, not an
-# upstream hook, which would download a Go toolchain and build it on the first
-# commit. .github/workflows/betterleaks.yml runs the same scan on every pull
-# request, so a commit made with --no-verify is still caught.
+# postCreateCommand, and by the repository's CI on every pull request, which
+# skips betterleaks there: its own job scans the commits. betterleaks is the
+# binary the Dockerfile installs, not an upstream hook, which would download a
+# Go toolchain and build it on the first commit.
 # Docs: https://pre-commit.com/#repository-local-hooks
 repos:
   - repo: local
@@ -12,3 +12,22 @@ repos:
         entry: betterleaks git --pre-commit --staged --redact --verbose
         language: system
         pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      # devcontainer.json is JSON with comments.
+      - id: check-json
+        exclude: ^\.devcontainer/devcontainer\.json$
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]
+        # ShellCheck does not support zsh.
+        exclude: \.zsh$
