@@ -2,7 +2,7 @@
 # =============================================================================
 # Prepare the HOST for the dev container (initializeCommand).
 #
-# Four jobs, all of which have to happen before the container is created:
+# Five jobs, all of which have to happen before the container is created:
 #
 #  1. .devcontainer/.env, with a freshly generated value for every secret, the
 #     Frappe pins, the project name, and an empty line per model-provider key
@@ -23,6 +23,10 @@
 #     aborts container creation.
 #  5. NO_PROXY_DOMAINS in .env, on every start, from the value below, which
 #     docker-compose.yml appends to NO_PROXY.
+#
+# A project's own values, its Frappe pins and its internal domains, are in
+# project.env next to this script, which the template does not ship, so this
+# script stays identical to the template's. project.env.example lists them.
 #
 # Runs on macOS, Linux and Windows, the last from WSL2 or Git Bash, which is
 # what provides bash and HOME there.
@@ -46,27 +50,35 @@ SECRETS=(DB_ROOT_PASSWORD ADMIN_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY
     KEYCLOAK_PASSWORD KEYCLOAK_CLIENT_SECRET LITELLM_MASTER_KEY)
 PROVIDER_KEYS=(ANTHROPIC_API_KEY OPENAI_API_KEY AZURE_API_KEY AZURE_API_BASE AZURE_API_VERSION)
 
-# The Frappe pins, the only place they are written. FRAPPE_VERSION is the exact
-# release install-bench.sh installs: set it to the one your production image
-# is built from. FRAPPE_PYTHON and FRAPPE_NODE are the Python and Node
-# frappe/build carries at that tag, which the Dockerfile makes the default.
+# The Frappe pins, the template's defaults, which a project sets in
+# project.env. FRAPPE_VERSION is the exact release install-bench.sh installs:
+# the one your production image is built from. FRAPPE_PYTHON and FRAPPE_NODE
+# are the Python and Node frappe/build carries at that tag, which the
+# Dockerfile makes the default.
 DEFAULT_FRAPPE_VERSION=v16.35.0
 DEFAULT_FRAPPE_PYTHON=3.14.7
 DEFAULT_FRAPPE_NODE=24.21.0
 PINS=(FRAPPE_VERSION FRAPPE_PYTHON FRAPPE_NODE)
 
 # The internal domains the containers reach without the proxy, comma-separated,
-# such as .example.org,git.example.org. Empty when there is none. Written into
-# .env on every start, so a change here reaches every checkout on its next
-# start, with no edit to docker-compose.yml.
+# such as .example.org,git.example.org. Empty when there is none, and set by a
+# project in project.env. Written into .env on every start, so a change reaches
+# every checkout on its next start, with no edit to docker-compose.yml.
 NO_PROXY_DOMAINS=""
+
+# project.env, read over the defaults above. NAME=VALUE lines, # comments and
+# blank lines, never sourced, so the file runs no code. A name that is not
+# below stops the start, so a mistyped one is not silently ignored.
+PROJECT_FILE="$HERE/project.env"
+PROJECT_VALUES=(DEFAULT_FRAPPE_VERSION DEFAULT_FRAPPE_PYTHON DEFAULT_FRAPPE_NODE NO_PROXY_DOMAINS)
 
 usage() {
     cat <<'EOF'
 Usage: init-env.sh [--force] [--print] [--project-name NAME]
 
-Generate .devcontainer/.env with a random value per secret and the Compose
-project name, render seaweedfs-s3.json and keycloak-realm.json from it, copy
+Generate .devcontainer/.env with a random value per secret, the Compose
+project name and the Frappe pins, the project's from project.env when it has
+one, render seaweedfs-s3.json and keycloak-realm.json from it, copy
 ~/.gitconfig, ~/.ssh/allowed_signers and ~/.npmrc into .devcontainer/, and
 write the host's home folder and herdr's into .env as HOST_HOME and
 HERDR_DIR, and the internal domains as NO_PROXY_DOMAINS, and create the
@@ -121,6 +133,32 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+read_project_values() {
+    local line name value
+    [[ -f $PROJECT_FILE ]] || return 0
+    while IFS= read -r line || [[ -n $line ]]; do
+        line="${line%$'\r'}"
+        [[ $line =~ ^[[:space:]]*(#|$) ]] && continue
+        if [[ ! $line =~ ^([A-Z_]+)=(.*)$ ]]; then
+            echo "init-env.sh: project.env: '$line' is not NAME=VALUE." >&2
+            exit 1
+        fi
+        name="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
+        if [[ " ${PROJECT_VALUES[*]} " != *" $name "* ]]; then
+            echo "init-env.sh: project.env sets $name, which is none of ${PROJECT_VALUES[*]}." >&2
+            exit 1
+        fi
+        # One pair of surrounding quotes is dropped, as in a .env.
+        if [[ $value =~ ^\"(.*)\"$ || $value =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+        printf -v "$name" '%s' "$value"
+    done <"$PROJECT_FILE"
+    return 0
+}
+read_project_values
 
 # The name asked for, on the command line or, as the proxy is, in the shell
 # that opens the container. Empty leaves it to derive_project_name.
