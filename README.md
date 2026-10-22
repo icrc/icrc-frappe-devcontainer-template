@@ -243,7 +243,7 @@ All in `development/`, all with `--help`, all aliased in the shell.
 | `console.sh` / `db-console.sh` | `frconsole` / `frdb` | A Python console, or a database shell |
 | `switch-version.sh` | `frswitch` | Move an app, frappe included, to another tag or branch and migrate every site |
 | `s3-create-buckets.sh`, `s3-list-buckets.sh`, `s3-list-files.sh` | | The local object store |
-| `repo-status.sh` | `frstatus`, `git repo-status` | The git state of every app checkout, in one table |
+| `repo-status.sh` | `frstatus`, `git repo-status` | The git state of every app checkout, in one table. `--pull`, or `frpull`, fast-forwards this repository and every app, and says when the dev container has to be rebuilt |
 | `pr-sync.sh` | `git pr-sync` | Return an app to its default branch once its PR is merged |
 | `gh-login.sh` | | Authenticate `gh`, once per host, with the device flow |
 | `get-skills.sh` | | Install the agent skills `skills.json` pins. Runs on every start |
