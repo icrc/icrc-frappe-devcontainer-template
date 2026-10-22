@@ -40,7 +40,6 @@ cd /workspace/development
 | `PROJECT_NAME` in `.devcontainer/.env` | The Compose project and the prefix of every volume, so two projects made from this template on one machine never share a database. Written on first start from your repository's name (`icrc-frappe-template` for this one), unless you choose it, see below |
 | `.devcontainer/project.env`, from `project.env.example` | The release your production image runs, see [Frappe versions](#frappe-versions), and your internal domains, if you work behind a proxy |
 | `.devcontainer/egress-allowlist` | The public hosts your apps reach that the list does not open yet |
-| `"name"` in `.devcontainer/devcontainer.json` | What the editor shows for the container |
 | `.github/CODEOWNERS` | Your team, in place of this repository's |
 | `README.md` | Your title and introduction. The rest describes the container and stays true |
 

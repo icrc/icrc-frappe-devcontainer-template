@@ -3,7 +3,10 @@
 // folder is one level inside the mount.
 // Docs: https://containers.dev/implementors/json_reference/
 {
-    "name": "Frappe Bench",
+    // The folder the repository is opened from, so a project made from the
+    // template keeps this file as it is. The Compose project takes the
+    // repository's name too, see init-env.sh.
+    "name": "${localWorkspaceFolderBasename}",
     "dockerComposeFile": "./docker-compose.yml",
     "service": "frappe",
     "workspaceFolder": "/workspace/development",
