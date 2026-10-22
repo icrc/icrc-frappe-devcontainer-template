@@ -29,6 +29,7 @@ alias frwatch="$DEV_DIR/watch.sh"
 alias frapps="$DEV_DIR/get-apps.sh"
 alias frnewapp="$DEV_DIR/new-app.sh"
 alias frstatus="$DEV_DIR/repo-status.sh"
+alias frpull="$DEV_DIR/repo-status.sh --pull"
 alias frswitch="$DEV_DIR/switch-version.sh"
 
 # Git

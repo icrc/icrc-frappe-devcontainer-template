@@ -32,7 +32,10 @@
 # when no tracked file is modified, the others by moving their ref, which leaves
 # the working tree alone. A diverged branch is left alone, as is a repository
 # whose fetch failed. Nothing is rewritten and nothing is merged, so every move
-# is undoable from the branch reflog.
+# is undoable from the branch reflog. When the move of this container
+# repository's checked-out branch changes a file under .devcontainer/, the
+# report names the files and says to rebuild the container, which is what
+# applies them.
 #
 # --porcelain fields, tab-separated, in order: path, branch, sync, worktree,
 # stashes, age, subject, upstream, ahead, behind, staged, unstaged, untracked,
@@ -171,6 +174,7 @@ fi
 
 pull_log=()
 pulled=0
+rebuild_files=()
 
 if ((PULL)); then
     for repo in "${repos[@]}"; do
@@ -202,7 +206,13 @@ if ((PULL)); then
                     pull_log+=("$rel $b: left alone, uncommitted changes ($track)")
                     continue
                 fi
+                before="$(git -C "$repo" rev-parse HEAD)"
                 out="$(git -C "$repo" merge --ff-only --quiet "$up" 2>&1)" || rc=$?
+                # The container is built from .devcontainer/, so a change there
+                # reaches it only through a rebuild.
+                if ((rc == 0)) && [[ "$repo" == "$ROOT" ]]; then
+                    mapfile -t rebuild_files < <(git -C "$repo" diff --name-only "$before" HEAD -- .devcontainer/)
+                fi
             else
                 # A branch that is not checked out moves by ref update alone, so
                 # no file changes and no clean-tree requirement. fetch refuses
@@ -290,6 +300,7 @@ done
 if ((PORCELAIN)); then
     # What --pull did is a side effect, not a row: keep it off the parsed stream.
     ((${#pull_log[@]})) && printf 'pull  %s\n' "${pull_log[@]}" >&2
+    ((${#rebuild_files[@]})) && echo "rebuild  the dev container changed: ${rebuild_files[*]}" >&2
     # path, branch, sync, worktree, stashes, age, subject, upstream, ahead,
     # behind, staged, unstaged, untracked, stale
     printf '%s\n' "${rows[@]}"
@@ -338,6 +349,12 @@ fi
 if ((${#pull_log[@]})); then
     echo ""
     printf 'pull  %s\n' "${pull_log[@]}"
+fi
+if ((${#rebuild_files[@]})); then
+    echo ""
+    echo "rebuild  the dev container changed, so rebuild it for the change to apply"
+    echo "         (Dev Containers: Rebuild Container):"
+    printf '           %s\n' "${rebuild_files[@]}"
 fi
 echo ""
 
