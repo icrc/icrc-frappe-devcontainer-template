@@ -30,8 +30,9 @@ development/apps.local.json
 # Frappe
 sites
 
-# Editors
+# Editors. out/ is IntelliJ's build output.
 .idea
+out/
 .vscode/**
 !.vscode/extensions.json
 *.code-workspace
