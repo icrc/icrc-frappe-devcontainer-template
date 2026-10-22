@@ -39,7 +39,7 @@ cd /workspace/development
 | `development/apps.json` | Your apps. It ships empty; `apps-example.json` has entries to copy, and [Choosing the apps](#choosing-the-apps) the rest |
 | `PROJECT_NAME` in `.devcontainer/.env` | The Compose project and the prefix of every volume, so two projects made from this template on one machine never share a database. Written on first start from your repository's name (`icrc-frappe-template` for this one), unless you choose it, see below |
 | `FRAPPE_VERSION`, `FRAPPE_PYTHON`, `FRAPPE_NODE` in `.devcontainer/.env` | The release your production image runs, see [Frappe versions](#frappe-versions) |
-| `NO_PROXY` and `no_proxy` in `.devcontainer/docker-compose.yml` | Your internal domains, if you work behind a proxy |
+| `NO_PROXY_DOMAINS` at the top of `.devcontainer/init-env.sh` | Your internal domains, if you work behind a proxy |
 | `.devcontainer/egress-allowlist` | The public hosts your apps reach that the list does not open yet |
 | `"name"` in `.devcontainer/devcontainer.json` | What the editor shows for the container |
 | `.github/CODEOWNERS` | Your team, in place of this repository's |
@@ -82,7 +82,7 @@ export HTTP_PROXY=http://proxy.example.org:8080
 export HTTPS_PROXY=http://proxy.example.org:8080
 ```
 
-Compose passes them to the `frappe` and `litellm` containers, whose `NO_PROXY` is hardcoded to its own service names, so the bench reaches MariaDB, Keycloak or LiteLLM directly. The host's `NO_PROXY` is not copied: a launcher may set it to `*` so that it goes direct itself, which would send every request in the container past the proxy. A project made from this template adds its internal domains to `NO_PROXY` and `no_proxy` in `.devcontainer/docker-compose.yml`. An editor started from a desktop menu may not see the shell's variables; the same two lines, without `export`, in `.devcontainer/.env` are read as a fallback. The image build takes the proxy from the `build.args` of `devcontainer.json`, and never from Compose: rootless Podman runs the build's steps on the host's network, where a container-only address such as `host.containers.internal` has no route.
+Compose passes them to the `frappe` and `litellm` containers, whose `NO_PROXY` is hardcoded to its own service names, so the bench reaches MariaDB, Keycloak or LiteLLM directly. The host's `NO_PROXY` is not copied: a launcher may set it to `*` so that it goes direct itself, which would send every request in the container past the proxy. A project made from this template sets its internal domains in `NO_PROXY_DOMAINS` at the top of `.devcontainer/init-env.sh`, which writes them into `.env` on every start, and Compose appends them to both lists. An editor started from a desktop menu may not see the shell's variables; the same two lines, without `export`, in `.devcontainer/.env` are read as a fallback. The image build takes the proxy from the `build.args` of `devcontainer.json`, and never from Compose: rootless Podman runs the build's steps on the host's network, where a container-only address such as `host.containers.internal` has no route.
 
 Pulling the base images goes through the Docker daemon, which has its own proxy setting: Docker Desktop's *Resources, Proxies*, or the daemon's `proxies` in `/etc/docker/daemon.json`.
 

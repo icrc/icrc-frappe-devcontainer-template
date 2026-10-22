@@ -21,6 +21,8 @@
 #     HOME, or HOME and USERPROFILE both.
 #  4. Those bind-mount directories. A bind mount whose source is missing
 #     aborts container creation.
+#  5. NO_PROXY_DOMAINS in .env, on every start, from the value below, which
+#     docker-compose.yml appends to NO_PROXY.
 #
 # Runs on macOS, Linux and Windows, the last from WSL2 or Git Bash, which is
 # what provides bash and HOME there.
@@ -53,6 +55,12 @@ DEFAULT_FRAPPE_PYTHON=3.14.7
 DEFAULT_FRAPPE_NODE=24.21.0
 PINS=(FRAPPE_VERSION FRAPPE_PYTHON FRAPPE_NODE)
 
+# The internal domains the containers reach without the proxy, comma-separated,
+# such as .example.org,git.example.org. Empty when there is none. Written into
+# .env on every start, so a change here reaches every checkout on its next
+# start, with no edit to docker-compose.yml.
+NO_PROXY_DOMAINS=""
+
 usage() {
     cat <<'EOF'
 Usage: init-env.sh [--force] [--print] [--project-name NAME]
@@ -61,7 +69,8 @@ Generate .devcontainer/.env with a random value per secret and the Compose
 project name, render seaweedfs-s3.json and keycloak-realm.json from it, copy
 ~/.gitconfig, ~/.ssh/allowed_signers and ~/.npmrc into .devcontainer/, and
 write the host's home folder and herdr's into .env as HOST_HOME and
-HERDR_DIR, and create the directories the container bind-mounts. Run automatically as the dev
+HERDR_DIR, and the internal domains as NO_PROXY_DOMAINS, and create the
+directories the container bind-mounts. Run automatically as the dev
 container's initializeCommand.
 
   --force              replace an existing .env. The database created with
@@ -278,6 +287,34 @@ write_host_paths() {
     return
 }
 
+# NO_PROXY_DOMAINS as docker-compose.yml appends it to its own list: led by a
+# comma, or empty.
+no_proxy_domains() {
+    local domains="${NO_PROXY_DOMAINS// /}"
+    domains="${domains#,}"
+    [[ -n $domains ]] && printf ',%s' "$domains"
+    return 0
+}
+
+# NO_PROXY_DOMAINS, rewritten on every start like the host folders, so a change
+# to the value above is followed.
+NO_PROXY_COMMENT="# Internal domains past the proxy, rewritten by init-env.sh on every start."
+write_no_proxy_domains() {
+    local domains tmp
+    domains="$(no_proxy_domains)"
+    if [[ $domains == *"'"* ]]; then
+        echo "init-env.sh: NO_PROXY_DOMAINS holds a ', which .env cannot hold." >&2
+        exit 1
+    fi
+    tmp="$(mktemp "${ENV_FILE}.XXXXXX")"
+    awk -v comment="$NO_PROXY_COMMENT" \
+        '$0 != comment && !/^NO_PROXY_DOMAINS=/' "$ENV_FILE" >"$tmp"
+    printf "%s\nNO_PROXY_DOMAINS='%s'\n" "$NO_PROXY_COMMENT" "$domains" >>"$tmp"
+    chmod 600 "$tmp"
+    mv "$tmp" "$ENV_FILE"
+    return
+}
+
 # seaweedfs reads its identities from a JSON file, which Compose cannot
 # interpolate, so it is rendered here from the template with the same keys.
 render_s3_config() {
@@ -317,6 +354,7 @@ if [[ $print_only == true ]]; then
             echo "HOST_HOME='$(host_home)'"
             echo "HERDR_DIR='$(herdr_dir)'"
         fi
+        echo "NO_PROXY_DOMAINS='$(no_proxy_domains)'"
     fi
     exit 0
 fi
@@ -347,6 +385,7 @@ if [[ -z ${HOME:-} ]]; then
     exit 1
 fi
 write_host_paths
+write_no_proxy_domains
 
 # A fresh copy on every start, empty when the host has none, so the mount
 # always has a file to map. The copy keeps the host file's mode rather than

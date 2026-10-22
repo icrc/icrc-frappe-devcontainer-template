@@ -8,10 +8,10 @@
 # frappe/bench carries bench, and pyenv and nvm with the current and the
 # previous Python and Node, so a bench on either major line of Frappe runs
 # here. Pinned to a release, so a rebuild is the same container, and bumped by
-# a Dependabot pull request, so a new toolchain is a change that is reviewed
-# before development meets it. The Frappe version and
-# the default Python and Node are pinned in .env, by FRAPPE_VERSION,
-# FRAPPE_PYTHON and FRAPPE_NODE. Everything else is pinned to a release.
+# a pull request, so a new toolchain is a change that is reviewed before
+# development meets it. The Frappe version and the default Python and Node
+# are pinned in .env, by FRAPPE_VERSION, FRAPPE_PYTHON and FRAPPE_NODE.
+# Everything else is pinned to a release.
 # =============================================================================
 FROM docker.io/frappe/bench:v5.31.0
 
@@ -31,8 +31,8 @@ ARG GH_SHA256_ARM64=b57e8063f18862647c9d22727c32e9da1b963f8bf9db648fe123a6975695
 # betterleaks, which the pre-commit hook runs on every commit. The successor to
 # gitleaks, by the same author, which now takes security patches only; it reads
 # the same config and gitleaks:allow comments. Fetched the same way as gh. The
-# CI workflow in .github/workflows/betterleaks.yml reads these three lines, so
-# a bump here moves both. Digests from
+# secret scan of the repository's CI reads the version and the amd64 digest
+# here, so a bump here moves both. Digests from
 # https://github.com/betterleaks/betterleaks/releases/download/v<version>/checksums.txt
 ARG BETTERLEAKS_VERSION=1.8.1
 ARG BETTERLEAKS_SHA256_AMD64=efa407244e1ea8e35f582b8a42becdeac08bdead04f68eb752adda722d583c2a
