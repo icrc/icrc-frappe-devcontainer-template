@@ -126,7 +126,7 @@ if [[ $APP == frappe && -f $ENV_FILE ]]; then
         echo "FRAPPE_VERSION=$NEW_VERSION" >>"$ENV_FILE"
     fi
     log_info "FRAPPE_VERSION in .devcontainer/.env is now $NEW_VERSION"
-    log_warn "If frappe/build:$NEW_VERSION has another Python or Node, set FRAPPE_PYTHON and FRAPPE_NODE there too and rebuild the container."
+    log_warn "If frappe/build:$NEW_VERSION has another Python or Node, set FRAPPE_PYTHON and FRAPPE_NODE there too, rebuild the container and run update-python.sh."
 fi
 
 log_info "Building the assets of $APP..."

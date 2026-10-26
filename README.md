@@ -146,7 +146,7 @@ Three pins in `.devcontainer/.env`, written once by `init-env.sh`, from `.devcon
 
 The container is [frappe/bench](https://hub.docker.com/r/frappe/bench/tags) at a pinned release, `v5.31.0`, so a rebuild is the same container. Dependabot opens a pull request when Frappe publishes a newer one. The Dockerfile installs the pinned Python and Node with its pyenv and nvm and makes them the default, so a rebuild never moves the interpreter the bench runs on. The Python and Node frappe/bench ships stay installed next to them.
 
-After changing `FRAPPE_PYTHON`, rebuild the container and recreate the bench's virtualenv on it: `cd frappe-bench && bench migrate-env python3.14`.
+After changing `FRAPPE_PYTHON`, rebuild the container and recreate the bench's virtualenv on it with `./update-python.sh`. The rebuild removes the Python the virtualenv was made on, so until then every script stops and says so. `update-python.sh` keeps the previous virtualenv in `frappe-bench/archived/envs/` and puts it back if the update fails.
 
 ### Moving to another release on the same line
 
@@ -154,7 +154,7 @@ After changing `FRAPPE_PYTHON`, rebuild the container and recreate the bench's v
 ./switch-version.sh frappe v16.36.0   # checks out, migrates every site, rewrites FRAPPE_VERSION
 ```
 
-If frappe/build at the new tag has another Python or Node, set `FRAPPE_PYTHON` and `FRAPPE_NODE` to match and rebuild.
+If frappe/build at the new tag has another Python or Node, set `FRAPPE_PYTHON` and `FRAPPE_NODE` to match, rebuild, and run `./update-python.sh`.
 
 ### Testing the next major line
 
@@ -164,7 +164,7 @@ Do it on a second bench next to the first, so the current one stays usable. Ever
 BENCH_NAME=frappe-bench-v17 ./install-bench.sh version-17
 ```
 
-If `frappe/build:version-17` has another Python or Node than the pins, add them for that bench first, until the next rebuild: `pyenv install 3.X.Y`, `nvm install N && nvm use N`, and `BENCH_PYTHON="$(pyenv root)/versions/3.X.Y/bin/python"`. Restore a backup into a site on the new bench, then run `BENCH_NAME=frappe-bench-v17 ./migrate-site.sh`. To move for good, set the three pins to the v17 release, rebuild, and `bench migrate-env` the bench.
+If `frappe/build:version-17` has another Python or Node than the pins, add them for that bench first, until the next rebuild: `pyenv install 3.X.Y`, `nvm install N && nvm use N`, and `BENCH_PYTHON="$(pyenv root)/versions/3.X.Y/bin/python"`. Restore a backup into a site on the new bench, then run `BENCH_NAME=frappe-bench-v17 ./migrate-site.sh`. To move for good, set the three pins to the v17 release, rebuild, and run `./update-python.sh`.
 
 ### A bench on the previous major line
 
@@ -241,6 +241,7 @@ All in `development/`, all with `--help`, all aliased in the shell.
 | `clear-cache.sh` | `frcache` | Clear the cache when the browser shows an old build |
 | `console.sh` / `db-console.sh` | `frconsole` / `frdb` | A Python console, or a database shell |
 | `switch-version.sh` | `frswitch` | Move an app, frappe included, to another tag or branch and migrate every site |
+| `update-python.sh` | | Recreate the bench's virtualenv on `FRAPPE_PYTHON`, or another Python, with every app. Needed after a rebuild on another `FRAPPE_PYTHON` |
 | `s3-create-buckets.sh`, `s3-list-buckets.sh`, `s3-list-files.sh` | | The local object store |
 | `repo-status.sh` | `frstatus`, `git repo-status` | The git state of every app checkout, in one table. `--pull`, or `frpull`, fast-forwards this repository and every app, and says when the dev container has to be rebuilt |
 | `pr-sync.sh` | `git pr-sync` | Return an app to its default branch once its PR is merged |
