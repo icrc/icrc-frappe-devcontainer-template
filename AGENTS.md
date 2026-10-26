@@ -37,6 +37,7 @@ cd /workspace/development
 ./migrate-site.sh       # after ANY DocType change
 ./repo-status.sh        # the git state of every app checkout
 ./get-skills.sh         # after editing skills.json; also runs on every start
+./update-python.sh      # after a rebuild on another FRAPPE_PYTHON
 ```
 
 ## Rules

@@ -56,10 +56,16 @@ S3_HOST="${S3_HOST:-http://seaweedfs:8333}"
 S3_SIGV4="${S3_SIGV4:-aws:amz:us-east-1:s3}"
 
 # Refuse early and clearly rather than letting bench fail three commands later.
+# A rebuild on another FRAPPE_PYTHON removes the interpreter the virtualenv
+# links to, and every bench command then dies on a bare FileNotFoundError.
+# update-python.sh, which repairs that, passes --any-python.
 require_bench() {
+    local mode="${1:-}" python="$BENCH_DIR/env/bin/python"
     [[ -d $BENCH_DIR ]] || error_exit "No bench at $BENCH_DIR. Run install-bench.sh first."
     [[ -f "$BENCH_DIR/sites/common_site_config.json" ]] ||
         error_exit "$BENCH_DIR is not a Frappe bench: no sites/common_site_config.json."
+    [[ $mode == --any-python || -x $python ]] ||
+        error_exit "The bench's Python is gone: $python links to $(readlink "$python" || echo nothing). Run update-python.sh."
     return
 }
 
