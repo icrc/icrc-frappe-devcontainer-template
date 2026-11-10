@@ -194,12 +194,25 @@ RUN pyenv install -s "${FRAPPE_PYTHON}" \
 # virtualenv of its own, so its dependencies never reach the interpreter above,
 # linked into ~/.local/bin, which frappe/bench puts on PATH. Pinned like
 # ast-grep, and like it installed from wheels only, so no setup script runs.
+#
+# semgrep, static analysis with rules written as code patterns, the same way.
+# Its wheel carries the semgrep-core binary for each architecture.
 ARG FRAPPECTL_VERSION=0.19.0
+ARG SEMGREP_VERSION=1.184.0
 RUN PYENV_VERSION="${FRAPPE_PYTHON}" python -m venv /home/frappe/.local/share/frappectl \
     && /home/frappe/.local/share/frappectl/bin/pip install --no-cache-dir --only-binary :all: \
     "frappectl==${FRAPPECTL_VERSION}" \
+    && PYENV_VERSION="${FRAPPE_PYTHON}" python -m venv /home/frappe/.local/share/semgrep \
+    && /home/frappe/.local/share/semgrep/bin/pip install --no-cache-dir --only-binary :all: \
+    "semgrep==${SEMGREP_VERSION}" \
     && mkdir -p /home/frappe/.local/bin \
-    && ln -sf /home/frappe/.local/share/frappectl/bin/frappectl /home/frappe/.local/bin/frappectl
+    && ln -sf /home/frappe/.local/share/frappectl/bin/frappectl /home/frappe/.local/bin/frappectl \
+    && ln -sf /home/frappe/.local/share/semgrep/bin/semgrep /home/frappe/.local/bin/semgrep
+
+# semgrep sends no usage metrics and does not ask semgrep.dev for a newer
+# release: the pin above moves by pull request.
+ENV SEMGREP_SEND_METRICS=off
+ENV SEMGREP_ENABLE_VERSION_CHECK=0
 
 # agent-browser drives the Debian chromium installed above.
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
