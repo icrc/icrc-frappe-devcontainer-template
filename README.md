@@ -136,6 +136,7 @@ To move a pin, set its `ref` to a newer commit sha and run `./get-skills.sh`.
 | `gh` | GitHub from the command line | `./gh-login.sh`, once per host |
 | `agent-browser` | Browser automation, to test a UI flow | Drives the image's Chromium, through `AGENT_BROWSER_EXECUTABLE_PATH` |
 | `frappectl` | Listing, reading and changing documents on a live Frappe site, v16 and later | `FRAPPE_SITE`, `FRAPPE_API_KEY` and `FRAPPE_API_SECRET` exported in the shell, from an API key of a site user: there is no keyring in a container. The agent can do whatever that user can, so give it the roles the work needs |
+| `semgrep` | Static analysis, with local rules or a registry ruleset such as `semgrep --config p/python` | Nothing. Metrics are off, so `--config auto`, which needs them, is refused: name the ruleset |
 
 ## Frappe versions
 
@@ -353,7 +354,7 @@ Kept from [frappe_docker](https://github.com/frappe/frappe_docker/tree/main/devc
 | | Upstream | Here |
 |---|---|---|
 | Distribution | A folder inside frappe_docker, copied by hand | A GitHub template repository; `PROJECT_NAME` keeps each copy's containers and volumes apart |
-| Image | `frappe/bench:latest`, used as is | `frappe/bench` pinned to a release, plus GitHub's host keys, zsh, `micro`, `gh`, `lazygit`, `jq`, `bat`, `fzf`, `rg`, `fd`, `tree`, `ast-grep`, `chromium`, `agent-browser`, `frappectl`. Every other image pinned to a release too |
+| Image | `frappe/bench:latest`, used as is | `frappe/bench` pinned to a release, plus GitHub's host keys, zsh, `micro`, `gh`, `lazygit`, `jq`, `bat`, `fzf`, `rg`, `fd`, `tree`, `ast-grep`, `chromium`, `agent-browser`, `frappectl`, `semgrep`. Every other image pinned to a release too |
 | Passwords | `123`, hardcoded in three places | Generated per install into `.env` |
 | Apps | `installer.py`, honoured only at `bench init` | `apps.json` + `get-apps.sh`, which works on an existing bench |
 | Site | `installer.py` | `create-site.sh`, with an explicit app list |

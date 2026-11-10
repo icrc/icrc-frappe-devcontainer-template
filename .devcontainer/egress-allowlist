@@ -24,6 +24,9 @@ release-assets.githubusercontent.com
 raw.githubusercontent.com
 codeload.github.com
 
+# semgrep's rule registry, for a ruleset such as `--config p/python`
+semgrep.dev
+
 # Claude Code: the API, login, and its telemetry and error reporting
 api.anthropic.com
 claude.ai
