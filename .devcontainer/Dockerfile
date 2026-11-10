@@ -24,9 +24,9 @@ ARG ZSH_IN_DOCKER_SHA256=0cf15b6f9c63a8103eb33bad87dc4b43fed0e0ad5884dff90f943ee
 # checked against the sha256 that release publishes. Bumping GH_VERSION means
 # bumping both digests, from
 # https://github.com/cli/cli/releases/download/v<version>/gh_<version>_checksums.txt
-ARG GH_VERSION=2.101.0
-ARG GH_SHA256_AMD64=9bca2d1c16825f109907a23307628a2f0698fbf99662b73a5cf0b020293072b8
-ARG GH_SHA256_ARM64=b57e8063f18862647c9d22727c32e9da1b963f8bf9db648fe123a6975695640f
+ARG GH_VERSION=2.103.3
+ARG GH_SHA256_AMD64=4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d
+ARG GH_SHA256_ARM64=ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63
 
 # betterleaks, which the pre-commit hook runs on every commit. The successor to
 # gitleaks, by the same author, which now takes security patches only; it reads
@@ -34,16 +34,16 @@ ARG GH_SHA256_ARM64=b57e8063f18862647c9d22727c32e9da1b963f8bf9db648fe123a6975695
 # secret scan of the repository's CI reads the version and the amd64 digest
 # here, so a bump here moves both. Digests from
 # https://github.com/betterleaks/betterleaks/releases/download/v<version>/checksums.txt
-ARG BETTERLEAKS_VERSION=1.8.1
-ARG BETTERLEAKS_SHA256_AMD64=efa407244e1ea8e35f582b8a42becdeac08bdead04f68eb752adda722d583c2a
-ARG BETTERLEAKS_SHA256_ARM64=bbb578b12a2f65d7082ab436abf37724232bc71d8a078e3c41336574420f1b48
+ARG BETTERLEAKS_VERSION=1.10.0
+ARG BETTERLEAKS_SHA256_AMD64=9d9ad503cd5d80d18a939352266c3fcca52f10da9b83cd5cfe646989b13940fe
+ARG BETTERLEAKS_SHA256_ARM64=3d7585cbe4f947aef6e31662f65beb5b43b104381a691b6b81b157ebfbb0c02d
 
 # lazygit, a terminal UI for git, aliased `lg` in custom.zsh. Fetched the same
 # way as gh. Digests from
 # https://github.com/jesseduffield/lazygit/releases/download/v<version>/checksums.txt
-ARG LAZYGIT_VERSION=0.65.1
-ARG LAZYGIT_SHA256_AMD64=02beacbcda0fa342e50ae3480ba8147307353af3fb28e1d5f790e02329c201a6
-ARG LAZYGIT_SHA256_ARM64=49abecdf6adf4f2dfdb11bf7b9bfada267ea523612ed809d1c6d87f6c04000a7
+ARG LAZYGIT_VERSION=0.66.3
+ARG LAZYGIT_SHA256_AMD64=0a23f429a95f0d09db298b3c291536d818de066aa5a85c255806f0490ff6656b
+ARG LAZYGIT_SHA256_ARM64=ac0b48237f3d0283813e7154ec063237e519532feb0470c0881a1793ee78fd42
 
 USER root
 
