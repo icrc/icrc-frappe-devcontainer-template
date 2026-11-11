@@ -143,7 +143,7 @@ To move a pin, set its `ref` to a newer commit sha and run `./get-skills.sh`.
 Three pins in `.devcontainer/.env`, written once by `init-env.sh`, from `.devcontainer/project.env` when the project has one, else from the template's defaults:
 
 - `FRAPPE_VERSION` (`v16.35.0`), the exact Frappe release `install-bench.sh` installs. Set it to the release your production image uses. Avoid a floating tag such as `v16`, which resolves to the newest v16 at install time.
-- `FRAPPE_PYTHON` (`3.14.7`) and `FRAPPE_NODE` (`24.21.0`), the Python and Node [frappe/build](https://hub.docker.com/r/frappe/build/tags) carries at that tag, so the bench runs on the production toolchain. Read them with `docker run --rm --entrypoint sh frappe/build:v16.35.0 -c 'python --version; node --version'`.
+- `FRAPPE_PYTHON` (`3.14.7`) and `FRAPPE_NODE` (`24.21.0`), the Python and Node [frappe/base](https://hub.docker.com/r/frappe/base/tags) carries at that tag, so the bench runs on the production toolchain: frappe/base is the image a production image runs on, and frappe/build only its build stage, which Frappe publishes for fewer releases. Read them with `docker run --rm --entrypoint sh frappe/base:v16.35.0 -c 'python --version; node --version'`.
 
 The container is [frappe/bench](https://hub.docker.com/r/frappe/bench/tags) at a pinned release, `v5.31.0`, so a rebuild is the same container. Dependabot opens a pull request when Frappe publishes a newer one. The Dockerfile installs the pinned Python and Node with its pyenv and nvm and makes them the default, so a rebuild never moves the interpreter the bench runs on. The Python and Node frappe/bench ships stay installed next to them.
 
@@ -155,7 +155,7 @@ After changing `FRAPPE_PYTHON`, rebuild the container and recreate the bench's v
 ./switch-version.sh frappe v16.36.0   # checks out, migrates every site, rewrites FRAPPE_VERSION
 ```
 
-If frappe/build at the new tag has another Python or Node, set `FRAPPE_PYTHON` and `FRAPPE_NODE` to match, rebuild, and run `./update-python.sh`.
+If frappe/base at the new tag has another Python or Node, set `FRAPPE_PYTHON` and `FRAPPE_NODE` to match, rebuild, and run `./update-python.sh`. frappe/base is published a day or so after the release: until it has the tag, keep the pins of its latest tag and check again.
 
 ### Testing the next major line
 
@@ -165,7 +165,7 @@ Do it on a second bench next to the first, so the current one stays usable. Ever
 BENCH_NAME=frappe-bench-v17 ./install-bench.sh version-17
 ```
 
-If `frappe/build:version-17` has another Python or Node than the pins, add them for that bench first, until the next rebuild: `pyenv install 3.X.Y`, `nvm install N && nvm use N`, and `BENCH_PYTHON="$(pyenv root)/versions/3.X.Y/bin/python"`. Restore a backup into a site on the new bench, then run `BENCH_NAME=frappe-bench-v17 ./migrate-site.sh`. To move for good, set the three pins to the v17 release, rebuild, and run `./update-python.sh`.
+If `frappe/base:version-17` has another Python or Node than the pins, add them for that bench first, until the next rebuild: `pyenv install 3.X.Y`, `nvm install N && nvm use N`, and `BENCH_PYTHON="$(pyenv root)/versions/3.X.Y/bin/python"`. Restore a backup into a site on the new bench, then run `BENCH_NAME=frappe-bench-v17 ./migrate-site.sh`. To move for good, set the three pins to the v17 release, rebuild, and run `./update-python.sh`.
 
 ### A bench on the previous major line
 

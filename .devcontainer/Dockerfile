@@ -151,7 +151,7 @@ RUN printf 'path-include /usr/share/doc/fzf/*\n' > /etc/dpkg/dpkg.cfg.d/fzf \
 
 USER frappe
 
-# The Python and Node the bench runs on, those of frappe/build at
+# The Python and Node the bench runs on, those of frappe/base at
 # FRAPPE_VERSION, installed next to the ones frappe/bench ships and made the
 # default. Pinned to the patch release, so a bump of frappe/bench never
 # moves the interpreter the bench's virtualenv points at. pyenv skips the
