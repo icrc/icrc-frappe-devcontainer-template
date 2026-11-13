@@ -13,8 +13,7 @@
 # are pinned in .env, by FRAPPE_VERSION, FRAPPE_PYTHON and FRAPPE_NODE.
 # Everything else is pinned to a release.
 # =============================================================================
-FROM docker.io/frappe/bench:v5.31.0
-
+FROM docker.io/frappe/bench:v5.31.1
 # zsh-in-docker publishes no checksum, so the digest is that of the release's
 # script, taken when it was pinned. Bumping the version means taking it again.
 ARG ZSH_IN_DOCKER_VERSION=1.2.1
@@ -24,9 +23,9 @@ ARG ZSH_IN_DOCKER_SHA256=0cf15b6f9c63a8103eb33bad87dc4b43fed0e0ad5884dff90f943ee
 # checked against the sha256 that release publishes. Bumping GH_VERSION means
 # bumping both digests, from
 # https://github.com/cli/cli/releases/download/v<version>/gh_<version>_checksums.txt
-ARG GH_VERSION=2.103.3
-ARG GH_SHA256_AMD64=4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d
-ARG GH_SHA256_ARM64=ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63
+ARG GH_VERSION=2.104.0
+ARG GH_SHA256_AMD64=98cb101ad87dbbd3f6b2f2bfcbd43197ccd07643140121d8a9cfaa91eadbc24e
+ARG GH_SHA256_ARM64=cb34cefc6f4e77b90731374a2b737516bb8f3033c6ca46aa949e5344f68069e3
 
 # betterleaks, which the pre-commit hook runs on every commit. The successor to
 # gitleaks, by the same author, which now takes security patches only; it reads
@@ -34,9 +33,9 @@ ARG GH_SHA256_ARM64=ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306
 # secret scan of the repository's CI reads the version and the amd64 digest
 # here, so a bump here moves both. Digests from
 # https://github.com/betterleaks/betterleaks/releases/download/v<version>/checksums.txt
-ARG BETTERLEAKS_VERSION=1.10.0
-ARG BETTERLEAKS_SHA256_AMD64=9d9ad503cd5d80d18a939352266c3fcca52f10da9b83cd5cfe646989b13940fe
-ARG BETTERLEAKS_SHA256_ARM64=3d7585cbe4f947aef6e31662f65beb5b43b104381a691b6b81b157ebfbb0c02d
+ARG BETTERLEAKS_VERSION=1.10.1
+ARG BETTERLEAKS_SHA256_AMD64=c174b42d7aa60caf58c0c3e555c0e4bed01fe6b0d99a412bce777b5af4ce913e
+ARG BETTERLEAKS_SHA256_ARM64=62a63199f9f61a6b5e5a6f58f048493db20fbc8c770014f4d903a4d97886e1bf
 
 # lazygit, a terminal UI for git, aliased `lg` in custom.zsh. Fetched the same
 # way as gh. Digests from
@@ -151,7 +150,7 @@ RUN printf 'path-include /usr/share/doc/fzf/*\n' > /etc/dpkg/dpkg.cfg.d/fzf \
 
 USER frappe
 
-# The Python and Node the bench runs on, those of frappe/build at
+# The Python and Node the bench runs on, those of frappe/base at
 # FRAPPE_VERSION, installed next to the ones frappe/bench ships and made the
 # default. Pinned to the patch release, so a bump of frappe/bench never
 # moves the interpreter the bench's virtualenv points at. pyenv skips the
@@ -165,15 +164,18 @@ USER frappe
 # maintain. pyenv's shims find it because FRAPPE_PYTHON comes first in global.
 #
 # agent-browser, browser automation for agents, goes into that Node: it needs
-# Node 24 or later. Pinned with yarn, checked by npm against the registry's
+# Node 22 or later. Pinned with yarn, checked by npm against the registry's
 # integrity hash, and installed without lifecycle scripts: agent-browser's only
 # sets the execute bit on the native binary its package ships, done here.
+# 0.42.0 is the last release whose package ships the Linux binaries: from
+# 0.43.0 its postinstall downloads them unchecked, which --ignore-scripts
+# skips, so the chmod below would find none.
 # virtualenv, which `bench migrate-env` runs, is pinned too.
 ARG FRAPPE_PYTHON
 ARG FRAPPE_NODE
-ARG AST_GREP_VERSION=0.45.3
-ARG VIRTUALENV_VERSION=21.14.7
-ARG AGENT_BROWSER_VERSION=0.38.1
+ARG AST_GREP_VERSION=0.51.2
+ARG VIRTUALENV_VERSION=21.15.6
+ARG AGENT_BROWSER_VERSION=0.42.0
 ARG YARN_VERSION=1.22.22
 RUN pyenv install -s "${FRAPPE_PYTHON}" \
     && PYENV_VERSION="${FRAPPE_PYTHON}" pip install --no-cache-dir --only-binary :all: \
@@ -197,8 +199,8 @@ RUN pyenv install -s "${FRAPPE_PYTHON}" \
 #
 # semgrep, static analysis with rules written as code patterns, the same way.
 # Its wheel carries the semgrep-core binary for each architecture.
-ARG FRAPPECTL_VERSION=0.19.0
-ARG SEMGREP_VERSION=1.184.0
+ARG FRAPPECTL_VERSION=0.24.0
+ARG SEMGREP_VERSION=1.185.0
 RUN PYENV_VERSION="${FRAPPE_PYTHON}" python -m venv /home/frappe/.local/share/frappectl \
     && /home/frappe/.local/share/frappectl/bin/pip install --no-cache-dir --only-binary :all: \
     "frappectl==${FRAPPECTL_VERSION}" \
