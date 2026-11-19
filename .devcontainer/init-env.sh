@@ -53,7 +53,7 @@ PROVIDER_KEYS=(ANTHROPIC_API_KEY OPENAI_API_KEY AZURE_API_KEY AZURE_API_BASE AZU
 # The Frappe pins, the template's defaults, which a project sets in
 # project.env. FRAPPE_VERSION is the exact release install-bench.sh installs:
 # the one your production image is built from. FRAPPE_PYTHON and FRAPPE_NODE
-# are the Python and Node frappe/build carries at that tag, which the
+# are the Python and Node frappe/base carries at that tag, which the
 # Dockerfile makes the default.
 DEFAULT_FRAPPE_VERSION=v16.35.0
 DEFAULT_FRAPPE_PYTHON=3.14.7
@@ -245,7 +245,7 @@ write_env() {
         done
         echo ""
         echo "# The exact Frappe release install-bench.sh installs, and the Python"
-        echo "# and Node frappe/build carries at that tag. Align them with your"
+        echo "# and Node frappe/base carries at that tag. Align them with your"
         echo "# production image and rebuild the container; switch-version.sh"
         echo "# frappe VERSION rewrites FRAPPE_VERSION here."
         echo "FRAPPE_VERSION=${DEFAULT_FRAPPE_VERSION}"
