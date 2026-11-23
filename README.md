@@ -112,10 +112,12 @@ When your organisation's policy requires it, Claude Code runs each Bash command 
 
 - runs `bench` outside the sandbox, so that it reaches the database and Redis. Claude Code still asks before each bench command, unless you allow it in your own settings. Only a bare `bench` command matches: a `bench` chained with `cd`, `&&`, `;` or a pipe stays in the sandbox;
 - runs `gh` outside the sandbox too, so that it finds your GitHub login in `~/.config/gh`, which the sandbox cannot read. It acts with that login wherever it allows, and Claude Code asks before each `gh` command as for bench;
+- runs `git fetch` and `git pull` outside the sandbox, so that they reach the container's git credential helper on localhost, which the sandbox's private network cannot. `git push` stays sandboxed. Only a bare command matches;
 - lets the sandbox read `~/.bench` and `~/.local/lib`, where bench is installed;
-- declares a hook, `claude-bash-guard.sh`, which refuses a command that starts with `cd` and a chained `bench`, and tells Claude how to run it instead.
+- declares a hook, `claude-bash-guard.sh`, which refuses a `cd` or a `bench` chained with other commands, and tells Claude how to run it instead. A `cd` on its own is let through: it is how a session started outside the bench gets into it.
 
-A script in `development/` is not excluded, so one that reaches the database, such as `migrate-site.sh`, fails when Claude runs it. Run it yourself, with `!` in Claude Code. A session that is not started from the container's shell, such as one from an IDE extension, does not load the file.
+A script in `development/` is not excluded, so one that reaches the database fails when Claude runs it. For `migrate-site.sh`, which only runs `bench migrate`, Claude runs the bench command itself. Run the others yourself, with `!` in Claude Code. A session that is not started from the container's shell, such as one from an IDE extension, does not load the file.
+
 
 ### Egress firewall
 
