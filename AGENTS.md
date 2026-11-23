@@ -44,9 +44,9 @@ cd /workspace/development
 
 Claude Code may run each Bash command in a sandbox, which the organisation's policy sets and you cannot change. A sandboxed command reads and writes only in the working directories, and its network carries only web traffic through a proxy. README.md's "Claude Code's sandbox" says what this container adds to it.
 
-- Never start a Bash command with `cd`. Give absolute paths. A hook refuses a command that starts with `cd`.
-- Run `bench` as a bare command from the bench directory, without `cd`, `&&`, `;` or a pipe. Only a bare `bench` command leaves the sandbox and reaches MariaDB and Redis.
-- A script in `development/` stays in the sandbox. When one needs the database, such as `migrate-site.sh`, ask the user to run it with `!`.
+- Never chain `cd` with other commands. Run it on its own, and the directory holds for the commands that follow, or give absolute paths. A hook refuses a chained `cd`.
+- Run `bench` as a bare command from the bench directory, without `cd`, `&&`, `;` or a pipe. Only a bare `bench` command leaves the sandbox and reaches MariaDB and Redis. To get into the bench, run `cd` to it on its own first.
+- A script in `development/` stays in the sandbox, so one that needs the database fails. `migrate-site.sh` only runs `bench --site <site> migrate` in the bench: run that bare from the bench instead. For a script that does more, such as `create-site.sh`, ask the user to run it with `!`.
 - Prefer the Read and Grep tools to `cat`, `grep`, `sed` or `find` in Bash. Do not chain read commands with `;`: make separate calls.
 - Do not try to reach a file outside the workspace: ask the user to copy it in. A path or a connection the sandbox refuses is the control doing its job, as with the firewall.
 
