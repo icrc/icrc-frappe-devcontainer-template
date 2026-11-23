@@ -1,9 +1,21 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "sandbox": {
-    "excludedCommands": ["bench", "bench *", "gh", "gh *"],
+    "excludedCommands": [
+      "bench",
+      "bench *",
+      "gh",
+      "gh *",
+      "git fetch *",
+      "git pull *",
+      "git -C * fetch *",
+      "git -C * pull *"
+    ],
     "filesystem": {
-      "allowRead": ["~/.bench", "~/.local/lib"]
+      "allowRead": [
+        "~/.bench",
+        "~/.local/lib"
+      ]
     }
   },
   "hooks": {
