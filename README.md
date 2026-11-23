@@ -111,6 +111,7 @@ When your organisation's policy requires it, Claude Code runs each Bash command 
 `.devcontainer/claude-settings.json` holds the settings this container adds to yours, and the `claude` alias in `custom.zsh` loads it with `--settings`. They are not in `~/.claude/settings.json`, because that file is the host's and every container shares it. The file:
 
 - runs `bench` outside the sandbox, so that it reaches the database and Redis. Claude Code still asks before each bench command, unless you allow it in your own settings. Only a bare `bench` command matches: a `bench` chained with `cd`, `&&`, `;` or a pipe stays in the sandbox;
+- runs `gh` outside the sandbox too, so that it finds your GitHub login in `~/.config/gh`, which the sandbox cannot read. It acts with that login wherever it allows, and Claude Code asks before each `gh` command as for bench;
 - lets the sandbox read `~/.bench` and `~/.local/lib`, where bench is installed;
 - declares a hook, `claude-bash-guard.sh`, which refuses a command that starts with `cd` and a chained `bench`, and tells Claude how to run it instead.
 
