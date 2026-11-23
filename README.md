@@ -104,6 +104,18 @@ The firewall limits where traffic goes, not what is sent there. It does not cove
 - **The proxy.** When one is set it is opened, and what it lets through is its own policy, not this list.
 - **What the agent does inside.** It can change any file in the repository and the bench, and run anything the `frappe` user can. Review its changes as you would anyone's; the signed commits and the secret scan below apply to them too.
 
+### Claude Code's sandbox
+
+When your organisation's policy requires it, Claude Code runs each Bash command in a sandbox. The sandbox's network carries only web traffic, through a proxy, so a sandboxed command cannot reach MariaDB or Redis: a bench command fails with `Unknown server host 'mariadb'`.
+
+`.devcontainer/claude-settings.json` holds the settings this container adds to yours, and the `claude` alias in `custom.zsh` loads it with `--settings`. They are not in `~/.claude/settings.json`, because that file is the host's and every container shares it. The file:
+
+- runs `bench` outside the sandbox, so that it reaches the database and Redis. Claude Code still asks before each bench command, unless you allow it in your own settings. Only a bare `bench` command matches: a `bench` chained with `cd`, `&&`, `;` or a pipe stays in the sandbox;
+- lets the sandbox read `~/.bench` and `~/.local/lib`, where bench is installed;
+- declares a hook, `claude-bash-guard.sh`, which refuses a command that starts with `cd` and a chained `bench`, and tells Claude how to run it instead.
+
+A script in `development/` is not excluded, so one that reaches the database, such as `migrate-site.sh`, fails when Claude runs it. Run it yourself, with `!` in Claude Code. A session that is not started from the container's shell, such as one from an IDE extension, does not load the file.
+
 ### Egress firewall
 
 Every start applies a default-deny outbound firewall, `.devcontainer/init-firewall.sh`. It opens the Compose network, GitHub, PyPI, npm and yarn, Claude Code and the VS Code marketplace, which `.devcontainer/egress-allowlist` lists, and the proxy when one is set. It works with a proxy and without one. `init-firewall.sh --help` has the detail.
