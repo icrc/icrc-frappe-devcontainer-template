@@ -23,9 +23,9 @@ ARG ZSH_IN_DOCKER_SHA256=0cf15b6f9c63a8103eb33bad87dc4b43fed0e0ad5884dff90f943ee
 # checked against the sha256 that release publishes. Bumping GH_VERSION means
 # bumping both digests, from
 # https://github.com/cli/cli/releases/download/v<version>/gh_<version>_checksums.txt
-ARG GH_VERSION=2.104.0
-ARG GH_SHA256_AMD64=98cb101ad87dbbd3f6b2f2bfcbd43197ccd07643140121d8a9cfaa91eadbc24e
-ARG GH_SHA256_ARM64=cb34cefc6f4e77b90731374a2b737516bb8f3033c6ca46aa949e5344f68069e3
+ARG GH_VERSION=2.105.0
+ARG GH_SHA256_AMD64=79e7ab5db738c48777b696e374f8b428f0647debfb424f44d2f426370407fe2f
+ARG GH_SHA256_ARM64=b1278c75107423d818f1937fd92cafc9e5e9b606631568f68d7fb816f5885a02
 
 # betterleaks, which the pre-commit hook runs on every commit. The successor to
 # gitleaks, by the same author, which now takes security patches only; it reads
@@ -52,6 +52,9 @@ USER root
 #             architectures, rather than the Chrome for Testing download
 #             agent-browser installs unchecked and only for amd64
 #   bat       syntax-highlighted cat, aliased in custom.zsh
+#   bubblewrap and socat, the Claude Code sandbox on Linux: when an
+#             organisation requires the sandbox, Claude Code refuses to
+#             start without them
 #   zstd      restoring a bench backup compressed with it
 #   iproute2  ss, which stop-bench.sh uses to find what holds a port, and
 #             ip, which init-firewall.sh reads the Compose network from
@@ -75,6 +78,7 @@ RUN printf 'path-include /usr/share/doc/fzf/*\n' > /etc/dpkg/dpkg.cfg.d/fzf \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
     bat \
+    bubblewrap \
     chromium \
     fd-find \
     fzf \
@@ -86,6 +90,7 @@ RUN printf 'path-include /usr/share/doc/fzf/*\n' > /etc/dpkg/dpkg.cfg.d/fzf \
     micro \
     procps \
     ripgrep \
+    socat \
     tree \
     zsh \
     zstd \
@@ -173,8 +178,8 @@ USER frappe
 # virtualenv, which `bench migrate-env` runs, is pinned too.
 ARG FRAPPE_PYTHON
 ARG FRAPPE_NODE
-ARG AST_GREP_VERSION=0.51.2
-ARG VIRTUALENV_VERSION=21.15.6
+ARG AST_GREP_VERSION=0.51.3
+ARG VIRTUALENV_VERSION=21.15.12
 ARG AGENT_BROWSER_VERSION=0.42.0
 ARG YARN_VERSION=1.22.22
 RUN pyenv install -s "${FRAPPE_PYTHON}" \
@@ -199,8 +204,8 @@ RUN pyenv install -s "${FRAPPE_PYTHON}" \
 #
 # semgrep, static analysis with rules written as code patterns, the same way.
 # Its wheel carries the semgrep-core binary for each architecture.
-ARG FRAPPECTL_VERSION=0.24.0
-ARG SEMGREP_VERSION=1.185.0
+ARG FRAPPECTL_VERSION=0.27.1
+ARG SEMGREP_VERSION=1.186.0
 RUN PYENV_VERSION="${FRAPPE_PYTHON}" python -m venv /home/frappe/.local/share/frappectl \
     && /home/frappe/.local/share/frappectl/bin/pip install --no-cache-dir --only-binary :all: \
     "frappectl==${FRAPPECTL_VERSION}" \
