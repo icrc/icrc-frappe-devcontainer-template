@@ -39,6 +39,12 @@ alias gl='git log --oneline -10'
 alias gp='git pull'
 alias lg='lazygit'
 
+# Claude Code with this container's settings on top of the host's ~/.claude,
+# which every container shares: see .devcontainer/claude-settings.json. Its
+# hook finds claude-bash-guard.sh through FRAPPE_DEVCONTAINER_DIR.
+export FRAPPE_DEVCONTAINER_DIR="${DEV_DIR%/*}/.devcontainer"
+alias claude='claude --settings "$FRAPPE_DEVCONTAINER_DIR/claude-settings.json"'
+
 # pyenv's shell integration, which frappe/bench sets up in ~/.bashrc only. The
 # shims are already on PATH; this adds `pyenv shell` and the rehash.
 command -v pyenv >/dev/null && eval "$(pyenv init - zsh)"
