@@ -63,7 +63,7 @@ services:
 
   # Catches every mail the bench sends. Web UI on http://localhost:8025.
   mailpit:
-    image: axllent/mailpit:v1.33.1
+    image: axllent/mailpit:v1.34.0
     volumes:
       - mailpit-data:/data
     ports:
@@ -82,7 +82,7 @@ services:
   # s3.json is rendered from its template by init-env.sh with the same keys as
   # .env, which is why it is gitignored rather than committed.
   seaweedfs:
-    image: chrislusf/seaweedfs:4.53
+    image: chrislusf/seaweedfs:4.54
     command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data -filer -filer.encryptVolumeData
     ports:
       - "9100:8333" # S3 API
